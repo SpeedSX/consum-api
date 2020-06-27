@@ -17,12 +17,12 @@ pub async fn get_orders() -> Result<Vec<Order>> {
     let rows: Vec<Row> = stream.into_first_result().await?;
     
     let orders: Vec<Order> = rows
-        .into_iter()
+        .iter()
         .map(|r| {
             Order { 
                 consId: r.get("ConsID").unwrap_or(0),
-                accountNum: r.get("AccountNum").unwrap_or("").to_owned(),
-                accountDate: "".to_string()
+                accountNum: String::from(r.get("AccountNum").unwrap_or("")),
+                accountDate: String::from("")
             }})
         .collect();
 

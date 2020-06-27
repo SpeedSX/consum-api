@@ -13,10 +13,12 @@ static CONN_STR: Lazy<String> = Lazy::new(|| {
         .unwrap_or_else(|_| "server=tcp:localhost\\SQLEXPRESS,1433;User=sa;Password=sas;Database=Consum".to_owned())
 });
 
+static DEFAULT_PORT: u16 = 3030;
+
 static PORT: Lazy<u16> = Lazy::new(|| {
     env::var("CONSUM_PORT")
-        .map(|s| s.parse::<u16>().unwrap_or(3030))
-        .unwrap_or_else(|_| 3030)
+        .map(|s| s.parse::<u16>().unwrap_or(DEFAULT_PORT))
+        .unwrap_or_else(|_| DEFAULT_PORT)
 });
 
 #[cfg(not(all(windows, feature = "sql-browser-tokio")))]
@@ -36,6 +38,6 @@ async fn main() {
         .recover(problem::unpack_problem);
 
     warp::serve(orders_route)
-        .run(([127, 0, 0, 1], 3030))
+        .run(([127, 0, 0, 1], *PORT))
         .await;
 }
