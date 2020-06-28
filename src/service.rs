@@ -24,10 +24,11 @@ pub fn run() {
 
     // Spawn the root task
     rt.block_on(async {
-        info!(target: "service", "Listening on 127.0.0.1:{}", service_config.get_port());
+        info!(target: "service", "Listening on {}", service_config.get_addr());
 
         warp::serve(orders_route)
-            .run(([127, 0, 0, 1], service_config.get_port()))
+            //.run(([127, 0, 0, 1], service_config.get_port()))
+            .run(service_config.get_addr())
             .await;
     });
 }

@@ -1,6 +1,7 @@
 use once_cell::sync::Lazy;
-use std::env;
+use std::{net::{IpAddr, SocketAddr, Ipv4Addr}, env};
 
+//static DEFAULT_HOST: [u32; 4] = [127, 0, 0, 1];
 static DEFAULT_PORT: u16 = 3030;
 static DEFAULT_CONNECTION_STRING: &str = "server=tcp:localhost\\SQLEXPRESS,1433;User=sa;Password=sas;Database=Consum";
 
@@ -12,8 +13,8 @@ impl Configuration {
         &CONN_STR
     }
 
-    pub fn get_port(&self) -> u16 {
-        *PORT
+    pub fn get_addr(&self) -> SocketAddr {
+        *ADDR
     }
 }
 
@@ -24,8 +25,9 @@ static CONN_STR: Lazy<String> = Lazy::new(|| {
         .unwrap_or_else(|_| String::from(DEFAULT_CONNECTION_STRING))
 });
 
-static PORT: Lazy<u16> = Lazy::new(|| {
-    env::var("CONSUM_PORT")
-        .map(|s| s.parse::<u16>().unwrap_or(DEFAULT_PORT))
-        .unwrap_or_else(|_| DEFAULT_PORT)
+static ADDR: Lazy<SocketAddr> = Lazy::new(|| {
+    let default: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), DEFAULT_PORT);
+    env::var("CONSUM_ADDR")
+        .map(|s| s.parse::<SocketAddr>().unwrap_or(default))
+        .unwrap_or_else(|_| default)
 });
