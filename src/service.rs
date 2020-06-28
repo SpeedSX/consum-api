@@ -5,7 +5,7 @@ use super::configuration::service_config;
 use super::handlers;
 use super::problem;
 
-pub fn run_service() {
+pub fn run() {
     if env::var_os("RUST_LOG").is_none() {
         // Set `RUST_LOG=todos=debug` to see debug logs,
         // this only shows access logs.

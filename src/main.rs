@@ -20,5 +20,5 @@ fn main() -> windows_service::Result<()> {
 
 #[cfg(not(feature="run-windows-service"))]
 fn main() {
-    service::run_service();
+    service::run();
 }
