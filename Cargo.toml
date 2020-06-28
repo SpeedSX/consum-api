@@ -17,4 +17,10 @@ log="0.4"
 anyhow = "1.0"
 http-api-problem = { version = "0.17.0", features = ["with-warp"] }
 serde = { version = "1.0", features = ["derive"] }
+
+[target.'cfg(windows)'.dependencies]
 windows-service = "0.3"
+
+[features]
+default = []
+run-windows-service = []

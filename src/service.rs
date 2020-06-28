@@ -9,7 +9,7 @@ pub fn run_service() {
     if env::var_os("RUST_LOG").is_none() {
         // Set `RUST_LOG=todos=debug` to see debug logs,
         // this only shows access logs.
-        env::set_var("RUST_LOG", "orders=info");
+        env::set_var("RUST_LOG", "orders=info,service=info");
     }
     pretty_env_logger::init();
 
@@ -24,6 +24,8 @@ pub fn run_service() {
 
     // Spawn the root task
     rt.block_on(async {
+        info!(target: "service", "Listening on 127.0.0.1:{}", service_config.get_port());
+
         warp::serve(orders_route)
             .run(([127, 0, 0, 1], service_config.get_port()))
             .await;
