@@ -1,43 +1,36 @@
 mod problem;
 mod service;
+mod repository;
 mod handlers;
 mod model;
+mod configuration;
 
-use warp::Filter;
-use std::env;
-use once_cell::sync::Lazy;
 #[macro_use] extern crate log;
 
-static CONN_STR: Lazy<String> = Lazy::new(|| {
-    env::var("CONSUM_CONNECTION_STRING")
-        .unwrap_or_else(|_| "server=tcp:localhost\\SQLEXPRESS,1433;User=sa;Password=sas;Database=Consum".to_owned())
-});
+#[macro_use]
+extern crate windows_service;
+use std::{ffi::OsString};
+use windows_service::service_dispatcher;
 
-static DEFAULT_PORT: u16 = 3030;
+define_windows_service!(ffi_service_main, my_service_main);
 
-static PORT: Lazy<u16> = Lazy::new(|| {
-    env::var("CONSUM_PORT")
-        .map(|s| s.parse::<u16>().unwrap_or(DEFAULT_PORT))
-        .unwrap_or_else(|_| DEFAULT_PORT)
-});
+fn my_service_main(arguments: Vec<OsString>) {
+    // The entry point where execution will start on a background thread after a call to
+    // `service_dispatcher::start` from `main`.
+    service::run_service();
+}
 
 #[cfg(not(all(windows, feature = "sql-browser-tokio")))]
-#[tokio::main]
-async fn main() {
-    if env::var_os("RUST_LOG").is_none() {
-        // Set `RUST_LOG=todos=debug` to see debug logs,
-        // this only shows access logs.
-        env::set_var("RUST_LOG", "orders=info");
-    }
-    pretty_env_logger::init();
+//#[cfg(windows)]
+fn main() -> Result<(), windows_service::Error> {
+    // Register generated `ffi_service_main` with the system and start the service, blocking
+    // this thread until the service is stopped.
+    service_dispatcher::start("PolyConsService", ffi_service_main)?;
+    //service::run_service();
+    Ok(())
+}
 
-    // GET /orders => 200 OK with orders list
-    let orders_route = warp::path!("orders")
-        .and_then(handlers::list_orders)
-        .with(warp::log("orders"))
-        .recover(problem::unpack_problem);
-
-    warp::serve(orders_route)
-        .run(([127, 0, 0, 1], *PORT))
-        .await;
+#[cfg(not(windows))]
+fn main() {
+    service::run_service();
 }

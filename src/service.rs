@@ -1,32 +1,31 @@
-use anyhow::Result;
-use tokio::net::TcpStream;
-use tiberius::{Config, Client, Row};
-use tokio_util::compat::Tokio02AsyncWriteCompatExt;
-use super::CONN_STR;
-use super::model::Order;
+use std::env;
+use warp::Filter;
+use tokio::runtime::Runtime;
+use super::configuration::service_config;
+use super::handlers;
+use super::problem;
 
-pub async fn get_orders() -> Result<Vec<Order>> {
-    let config = Config::from_ado_string(&CONN_STR)?;
+pub fn run_service() {
+    if env::var_os("RUST_LOG").is_none() {
+        // Set `RUST_LOG=todos=debug` to see debug logs,
+        // this only shows access logs.
+        env::set_var("RUST_LOG", "orders=info");
+    }
+    pretty_env_logger::init();
 
-    let tcp = TcpStream::connect(config.get_addr()).await?;
-    tcp.set_nodelay(true)?;
+    // GET /orders => 200 OK with orders list
+    let orders_route = warp::path!("orders")
+        .and_then(handlers::list_orders)
+        .with(warp::log("orders"))
+        .recover(problem::unpack_problem);
 
-    let mut client = Client::connect(config, tcp.compat_write()).await?;
+    // Create the runtime
+    let mut rt = Runtime::new().unwrap(); 
 
-    let stream = client.simple_query("SELECT * from ConsOrders").await?;
-    let rows: Vec<Row> = stream.into_first_result().await?;
-    
-    let orders: Vec<Order> = rows
-        .iter()
-        .map(|r| {
-            Order { 
-                consId: r.get("ConsID").unwrap_or(0),
-                accountNum: String::from(r.get("AccountNum").unwrap_or("")),
-                accountDate: String::from("")
-            }})
-        .collect();
-
-    info!(target: "orders", "Orders count = {}", orders.len());
-
-    Ok(orders)
+    // Spawn the root task
+    rt.block_on(async {
+        warp::serve(orders_route)
+            .run(([127, 0, 0, 1], service_config.get_port()))
+            .await;
+    });
 }
