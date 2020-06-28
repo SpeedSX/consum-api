@@ -3,7 +3,7 @@ Web API for Consum application database, implemented in Rust.
 Uses Tiberius for MS SQL Server access, Warp as web framework.
 
 Technical to do:
-- Configure IP to listen
+- Implement correct stopping of windows service
 - Logging to file
 - Authentication with token
 - Test performance
