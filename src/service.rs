@@ -2,8 +2,10 @@ use std::env;
 use warp::Filter;
 use tokio::runtime::Runtime;
 use super::configuration::service_config;
-use super::handlers;
-use super::problem;
+use super::{
+    handlers,
+    problem
+};
 
 pub fn run() {
     if env::var_os("RUST_LOG").is_none() {

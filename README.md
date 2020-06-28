@@ -5,6 +5,7 @@ Uses Tiberius for MS SQL Server access, Warp as web framework.
 Technical to do:
 - Implement correct stopping of windows service
 - Logging to file
+- Use DB connection pool
 - Authentication with token
 - Test performance
 - Unit tests

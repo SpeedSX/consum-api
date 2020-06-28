@@ -2,8 +2,11 @@ use anyhow::Result;
 use tokio::net::TcpStream;
 use tiberius::{Config, Client, Row};
 use tokio_util::compat::Tokio02AsyncWriteCompatExt;
-use super::model::Order;
-use super::configuration::service_config;
+
+use super::{
+    model::Order,
+    configuration::service_config
+};
 
 pub async fn get_orders() -> Result<Vec<Order>> {
     let config = Config::from_ado_string(&service_config.get_connection_string())?;
