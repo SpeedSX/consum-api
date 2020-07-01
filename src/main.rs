@@ -1,5 +1,5 @@
 mod problem;
-mod service;
+mod service_main;
 mod repository;
 mod handlers;
 mod model;
@@ -10,8 +10,8 @@ mod windows_service_main;
 
 #[macro_use] extern crate log;
 
-#[cfg(feature = "run-windows-service")]
-#[macro_use] extern crate windows_service;
+//#[cfg(feature = "run-windows-service")]
+//#[macro_use] extern crate windows_service;
 
 #[cfg(feature = "run-windows-service")]
 fn main() -> windows_service::Result<()> {
@@ -20,5 +20,5 @@ fn main() -> windows_service::Result<()> {
 
 #[cfg(not(feature="run-windows-service"))]
 fn main() {
-    service::run();
+    service_main::run();
 }

@@ -18,7 +18,7 @@ impl Configuration {
     }
 }
 
-pub static service_config: Configuration = Configuration {};
+pub static SERVICE_CONFIG: Configuration = Configuration {};
 
 static CONN_STR: Lazy<String> = Lazy::new(|| {
     env::var("CONSUM_CONNECTION_STRING")

@@ -5,11 +5,11 @@ use tokio_util::compat::Tokio02AsyncWriteCompatExt;
 
 use super::{
     model::Order,
-    configuration::service_config
+    configuration::SERVICE_CONFIG
 };
 
 pub async fn get_orders() -> Result<Vec<Order>> {
-    let config = Config::from_ado_string(&service_config.get_connection_string())?;
+    let config = Config::from_ado_string(&SERVICE_CONFIG.get_connection_string())?;
 
     let tcp = TcpStream::connect(config.get_addr()).await?;
     tcp.set_nodelay(true)?;

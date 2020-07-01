@@ -3,6 +3,7 @@ use std::{
     sync::mpsc,
     time::Duration
 };
+
 use windows_service::{
     define_windows_service,
     service::{
@@ -13,7 +14,7 @@ use windows_service::{
     service_dispatcher, Result,
 };
 
-use super::service;
+use super::service_main;
 
 // Generate the windows service boilerplate.
 // The boilerplate contains the low-level service entry function (ffi_service_main) that parses
@@ -71,7 +72,7 @@ pub fn run_service() -> Result<()> {
         process_id: None,
     })?;
 
-    service::run();
+    service_main::run();
 
     // Tell the system that service has stopped.
     status_handle.set_service_status(ServiceStatus {
@@ -87,7 +88,6 @@ pub fn run_service() -> Result<()> {
     Ok(())
 }
 
-//#[cfg(not(all(windows, feature = "sql-browser-tokio")))]
 pub fn run() -> Result<()> {
     // Register generated `ffi_service_main` with the system and start the service, blocking
     // this thread until the service is stopped.
