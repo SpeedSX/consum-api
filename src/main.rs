@@ -4,6 +4,7 @@ mod repository;
 mod handlers;
 mod model;
 mod configuration;
+mod connection_manager;
 
 #[cfg(feature = "run-windows-service")]
 mod windows_service_main;

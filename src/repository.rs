@@ -1,20 +1,23 @@
 use anyhow::Result;
-use tokio::net::TcpStream;
 use tiberius::{Config, Client, Row};
-use tokio_util::compat::Tokio02AsyncWriteCompatExt;
 
 use super::{
     model::Order,
-    configuration::SERVICE_CONFIG
+    configuration::SERVICE_CONFIG,
+    connection_manager::{TiberiusConnectionManager}
 };
+use once_cell::sync::Lazy;
+
+static POOL: Lazy<bb8::Pool<TiberiusConnectionManager>> = Lazy::new(|| {
+    // TODO: too many unwraps :)
+    let manager = TiberiusConnectionManager::new(Config::from_ado_string(SERVICE_CONFIG.get_connection_string()).unwrap()).unwrap();
+    bb8::Pool::builder().max_size(10).build_unchecked(manager)
+});
 
 pub async fn get_orders() -> Result<Vec<Order>> {
-    let config = Config::from_ado_string(&SERVICE_CONFIG.get_connection_string())?;
 
-    let tcp = TcpStream::connect(config.get_addr()).await?;
-    tcp.set_nodelay(true)?;
-
-    let mut client = Client::connect(config, tcp.compat_write()).await?;
+    let pool = POOL.clone();
+    let mut client = pool.get().await.unwrap();
 
     let stream = client.simple_query("SELECT top (100) * from ConsOrders").await?;
     let rows: Vec<Row> = stream.into_first_result().await?;
