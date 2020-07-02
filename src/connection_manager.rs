@@ -37,6 +37,7 @@ use tiberius::{Client, Config};
 use tokio::net::TcpStream;
 use tokio_util::compat::Compat;
 use tokio_util::compat::Tokio02AsyncWriteCompatExt;
+use std::net::SocketAddr;
 
 #[derive(Clone, Debug)]
 pub struct TiberiusConnectionManager {
@@ -60,7 +61,8 @@ impl bb8::ManageConnection for TiberiusConnectionManager {
 
     async fn connect(&self) -> anyhow::Result<Self::Connection> {
 
-        let tcp = TcpStream::connect(&self.config.get_addr()).await?;
+        let addr: SocketAddr = self.config.get_addr().parse().unwrap();
+        let tcp = TcpStream::connect(&addr).await?;
         tcp.set_nodelay(true)?;
     
         let client = Client::connect(self.config.clone(), tcp.compat_write()).await?;
