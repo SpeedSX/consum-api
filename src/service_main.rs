@@ -29,6 +29,7 @@ pub fn run() {
         info!(target: "service", "Listening on {}", SERVICE_CONFIG.get_addr());
 
         warp::serve(orders_route)
+            //.unstable_pipeline()
             //.run(([127, 0, 0, 1], service_config.get_port()))
             .run(SERVICE_CONFIG.get_addr())
             .await;
