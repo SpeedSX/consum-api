@@ -16,6 +16,7 @@ pub async fn get_orders(pool: DBPool) -> Result<Vec<Order>> {
     let orders: Vec<Order> = rows
         .iter()
         .map(|r| {
+            //info!(target: "orders", "{:?}", r);
             Order { 
                 consId: r.get("ConsID").unwrap_or_default(),
                 orderState: r.get("OrderState").unwrap_or_default(),
@@ -41,15 +42,18 @@ pub async fn get_categories(pool: DBPool) -> Result<Vec<Category>> {
 
     let mut client = pool.get().await.unwrap();
     
-    let stream = client.simple_query("SELECT * from Categories").await?;
+    let stream = client.simple_query("SELECT * from ConsCats").await?;
     let rows: Vec<Row> = stream.into_first_result().await?;
     
     let cats: Vec<Category> = rows
         .iter()
         .map(|r| {
+            //debug!(target: "orders", "{:?}", r);
             Category { 
                 catId: r.get("CatID").unwrap_or_default(),
-                parentId: r.get::<i32, &str>("ParentID"),
+                // TODO: only try_get-unwrap_or works for this field, while for ConsOrders.TrustNum we can use just .into() (see above)
+                // Possibly because it comes as I8(None) instead of i32, but why?
+                parentId: r.try_get("ParentID").unwrap_or_default(),
                 catName: r.get::<&str, &str>("CatName").map(|s| s.to_string()),
                 catUnitCode: r.get("CatUnitCode").unwrap_or_default(),
                 code: r.get("Code").unwrap_or_default(),

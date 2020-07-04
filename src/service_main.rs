@@ -27,15 +27,13 @@ pub fn run() {
         let db_pool = bb8::Pool::builder().max_size(SERVICE_CONFIG.get_max_pool()).build_unchecked(manager);
         
         // GET /orders => 200 OK with orders list
-        let orders_route = warp::path!("orders")
-            .and(with_db(db_pool.clone()))
-            .and_then(handlers::list_orders)
+        let api = api(db_pool)
             .with(warp::log("orders"))
             .recover(problem::unpack_problem);
     
         info!(target: "service", "Listening on {}", SERVICE_CONFIG.get_addr());
 
-        warp::serve(orders_route)
+        warp::serve(api)
             //.unstable_pipeline()
             //.run(([127, 0, 0, 1], service_config.get_port()))
             .run(SERVICE_CONFIG.get_addr())
@@ -45,4 +43,30 @@ pub fn run() {
 
 fn with_db(db_pool: DBPool) -> impl Filter<Extract = (DBPool,), Error = Infallible> + Clone {
     warp::any().map(move || db_pool.clone())
+}
+
+pub fn orders(
+    db: DBPool,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("orders")
+        .and(warp::get())
+        .and(with_db(db))
+        .and_then(handlers::list_orders)
+}
+
+
+pub fn categories(
+    db: DBPool,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("categories")
+        .and(warp::get())
+        .and(with_db(db))
+        .and_then(handlers::list_categories)
+}
+
+pub fn api(
+    db: DBPool,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    orders(db.clone())
+        .or(categories(db))
 }
