@@ -1,9 +1,10 @@
 use warp::{self, Rejection, Reply};
+use crate::{db, DBPool};
 
-pub async fn list_orders() -> Result<impl Reply, Rejection> {
-    super::repository::get_orders()
+pub async fn list_orders(db_pool: DBPool) -> Result<impl Reply, Rejection> {
+    db::get_orders(db_pool)
         .await
         .map(|orders| warp::reply::json(&orders))
-        .map_err(super::problem::from_anyhow)
+        .map_err(crate::problem::from_anyhow)
         .map_err(|e| warp::reject::custom(e))
 }

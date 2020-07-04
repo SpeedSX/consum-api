@@ -14,7 +14,7 @@ use windows_service::{
     service_dispatcher, Result,
 };
 
-use super::service_main;
+use crate::service_main;
 
 // Generate the windows service boilerplate.
 // The boilerplate contains the low-level service entry function (ffi_service_main) that parses

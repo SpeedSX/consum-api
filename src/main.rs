@@ -1,10 +1,15 @@
 mod problem;
 mod service_main;
-mod repository;
+mod db;
 mod handlers;
 mod model;
 mod configuration;
 mod connection_manager;
+mod serialization;
+
+use connection_manager::TiberiusConnectionManager;
+
+type DBPool = bb8::Pool<TiberiusConnectionManager>;
 
 #[cfg(feature = "run-windows-service")]
 mod windows_service_main;

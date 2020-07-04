@@ -37,7 +37,7 @@ use tiberius::{Client, Config};
 use tokio::net::TcpStream;
 use tokio_util::compat::Compat;
 use tokio_util::compat::Tokio02AsyncWriteCompatExt;
-use std::net::SocketAddr;
+use anyhow::{Result, Error};
 
 #[derive(Clone, Debug)]
 pub struct TiberiusConnectionManager {
@@ -57,22 +57,22 @@ impl TiberiusConnectionManager {
 #[async_trait]
 impl bb8::ManageConnection for TiberiusConnectionManager {
     type Connection = Client<Compat<TcpStream>>;
-    type Error = anyhow::Error;
+    type Error = Error;
 
-    async fn connect(&self) -> anyhow::Result<Self::Connection> {
+    async fn connect(&self) -> Result<Self::Connection> {
 
         let tcp = TcpStream::connect(&self.config.get_addr()).await?;
         tcp.set_nodelay(true)?;
     
         let client = Client::connect(self.config.clone(), tcp.compat_write()).await?;
 
-        anyhow::Result::Ok(client)
+        Result::Ok(client)
     }
 
-    async fn is_valid(&self, mut conn: Self::Connection) -> anyhow::Result<Self::Connection, Self::Error> {
+    async fn is_valid(&self, mut conn: Self::Connection) -> Result<Self::Connection, Self::Error> {
         let query_result = conn.simple_query("SELECT 1 AS col").await?.into_row().await;
         // TODO: check col value
-        query_result.map(|_| conn).map_err(|e| anyhow::Error::from(e))
+        query_result.map(|_| conn).map_err(|e| Error::from(e))
     }
 
     fn has_broken(&self, _: &mut Self::Connection) -> bool {

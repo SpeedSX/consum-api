@@ -19,6 +19,7 @@ http-api-problem = { version = "0.17.0", features = ["with-warp"] }
 serde = { version = "1.0", features = ["derive"] }
 bb8 = "0.4"
 async-trait = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-service = "0.3"
