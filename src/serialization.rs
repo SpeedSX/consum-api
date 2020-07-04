@@ -7,6 +7,6 @@ where
 {
     match d {
         Some(v) => (*v).serialize(s),
-        None => "".serialize(s)
+        None => s.serialize_none()
     }
 }
