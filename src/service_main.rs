@@ -1,6 +1,7 @@
 use std::{convert::Infallible, env};
 use warp::Filter;
-use tokio::runtime::Runtime;
+use tokio::{runtime::Runtime, sync::oneshot::{self, Receiver}};
+use tiberius::Config;
 use crate::{
     handlers,
     problem,
@@ -8,9 +9,13 @@ use crate::{
     DBPool,
     connection_manager::TiberiusConnectionManager
 };
-use tiberius::Config;
 
 pub fn run() {
+    let (_tx, rx) = oneshot::channel::<()>();
+    run_with_graceful_shutdown(rx);
+}
+
+pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + 'static {
     if env::var_os("RUST_LOG").is_none() {
         // Set `RUST_LOG=todos=debug` to see debug logs,
         // this only shows access logs.
@@ -20,7 +25,7 @@ pub fn run() {
 
     // Create the runtime
     let mut rt = Runtime::new().unwrap(); 
-
+    
     // Spawn the root task
     rt.block_on(async {
         let manager = TiberiusConnectionManager::new(Config::from_ado_string(SERVICE_CONFIG.get_connection_string()).unwrap()).unwrap();
@@ -33,11 +38,14 @@ pub fn run() {
     
         info!(target: "service", "Listening on {}", SERVICE_CONFIG.get_addr());
 
-        warp::serve(api)
+        let (_addr, server) = warp::serve(api)
             //.unstable_pipeline()
             //.run(([127, 0, 0, 1], service_config.get_port()))
-            .run(SERVICE_CONFIG.get_addr())
-            .await;
+            //.run(SERVICE_CONFIG.get_addr())
+         .bind_with_graceful_shutdown(SERVICE_CONFIG.get_addr(), async move {
+            shutdown_rx.await.ok();
+         });
+         server.await;
     });
 }
 

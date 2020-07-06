@@ -1,6 +1,5 @@
 use std::{
     ffi::OsString,
-    sync::mpsc,
     time::Duration
 };
 
@@ -13,6 +12,8 @@ use windows_service::{
     service_control_handler::{self, ServiceControlHandlerResult},
     service_dispatcher, Result,
 };
+
+use tokio::sync::oneshot;
 
 use crate::service_main;
 
@@ -38,7 +39,8 @@ const SERVICE_TYPE: ServiceType = ServiceType::OWN_PROCESS;
 
 pub fn run_service() -> Result<()> {
     // Create a channel to be able to poll a stop event from the service worker loop.
-    let (shutdown_tx, shutdown_rx) = mpsc::channel();
+    let (shutdown_tx, shutdown_rx) = oneshot::channel();
+    let mut mut_tx = Some(shutdown_tx); // this is added to make event_handler satisfy FnOnce
 
     // Define system service event handler that will be receiving service events.
     let event_handler = move |control_event| -> ServiceControlHandlerResult {
@@ -49,7 +51,7 @@ pub fn run_service() -> Result<()> {
 
             // Handle stop
             ServiceControl::Stop => {
-                shutdown_tx.send(()).unwrap();
+                let _ = mut_tx.take().unwrap().send(()).ok();
                 ServiceControlHandlerResult::NoError
             }
 
@@ -72,7 +74,7 @@ pub fn run_service() -> Result<()> {
         process_id: None,
     })?;
 
-    service_main::run();
+    service_main::run_with_graceful_shutdown(shutdown_rx);
 
     // Tell the system that service has stopped.
     status_handle.set_service_status(ServiceStatus {
