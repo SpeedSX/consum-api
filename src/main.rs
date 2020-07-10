@@ -1,11 +1,11 @@
-mod problem;
-mod service_main;
+mod startup;
+mod configuration;
 mod db;
 mod handlers;
 mod model;
-mod configuration;
 mod connection_manager;
 mod serialization;
+mod problem;
 
 use connection_manager::TiberiusConnectionManager;
 
@@ -26,5 +26,5 @@ fn main() -> windows_service::Result<()> {
 
 #[cfg(not(feature="run-windows-service"))]
 fn main() {
-    service_main::run();
+    startup::run();
 }

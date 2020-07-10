@@ -15,7 +15,7 @@ use windows_service::{
 
 use tokio::sync::oneshot;
 
-use crate::service_main;
+use crate::startup;
 
 // Generate the windows service boilerplate.
 // The boilerplate contains the low-level service entry function (ffi_service_main) that parses
@@ -74,7 +74,7 @@ pub fn run_service() -> Result<()> {
         process_id: None,
     })?;
 
-    service_main::run_with_graceful_shutdown(shutdown_rx);
+    startup::run_with_graceful_shutdown(shutdown_rx);
 
     // Tell the system that service has stopped.
     status_handle.set_service_status(ServiceStatus {
