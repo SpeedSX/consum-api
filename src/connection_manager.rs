@@ -33,11 +33,10 @@ pub use bb8;
 pub use tiberius;
 
 use async_trait::async_trait;
-use tiberius::{Client, Config};
+use tiberius::{Client, Config, error::Error};
 use tokio::net::TcpStream;
 use tokio_util::compat::Compat;
 use tokio_util::compat::Tokio02AsyncWriteCompatExt;
-use anyhow::{Result, Error};
 
 #[derive(Clone, Debug)]
 pub struct TiberiusConnectionManager {
@@ -59,14 +58,12 @@ impl bb8::ManageConnection for TiberiusConnectionManager {
     type Connection = Client<Compat<TcpStream>>;
     type Error = Error;
 
-    async fn connect(&self) -> Result<Self::Connection> {
+    async fn connect(&self) -> Result<Self::Connection, Self::Error> {
 
         let tcp = TcpStream::connect(&self.config.get_addr()).await?;
         tcp.set_nodelay(true)?;
     
-        let client = Client::connect(self.config.clone(), tcp.compat_write()).await?;
-
-        Result::Ok(client)
+        Client::connect(self.config.clone(), tcp.compat_write()).await
     }
 
     async fn is_valid(&self, mut conn: Self::Connection) -> Result<Self::Connection, Self::Error> {

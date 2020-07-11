@@ -51,7 +51,8 @@ pub fn run_service() -> Result<()> {
 
             // Handle stop
             ServiceControl::Stop => {
-                let _ = mut_tx.take().unwrap().send(()).ok();
+                let result = mut_tx.take().unwrap().send(()).ok();
+                info!("{:?}", result);
                 ServiceControlHandlerResult::NoError
             }
 

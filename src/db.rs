@@ -8,7 +8,7 @@ use crate::{
 
 pub async fn get_orders(pool: DBPool) -> Result<Vec<Order>> {
 
-    let mut client = pool.get().await.unwrap();
+    let mut client = pool.get().await?;
     
     let stream = client.simple_query("SELECT top (100) * from ConsOrders").await?;
     let rows: Vec<Row> = stream.into_first_result().await?;
@@ -16,7 +16,7 @@ pub async fn get_orders(pool: DBPool) -> Result<Vec<Order>> {
     let orders: Vec<Order> = rows
         .iter()
         .map(|r| {
-            //info!(target: "orders", "{:?}", r);
+            //info!("{:?}", r);
             Order { 
                 consId: r.get("ConsID").unwrap_or_default(),
                 orderState: r.get("OrderState").unwrap_or_default(),
@@ -32,7 +32,7 @@ pub async fn get_orders(pool: DBPool) -> Result<Vec<Order>> {
             }})
         .collect();
 
-    info!(target: "orders", "Orders count = {}", orders.len());
+    info!("Orders count = {}", orders.len());
 
     Ok(orders)
 }
@@ -40,7 +40,7 @@ pub async fn get_orders(pool: DBPool) -> Result<Vec<Order>> {
 
 pub async fn get_categories(pool: DBPool) -> Result<Vec<Category>> {
 
-    let mut client = pool.get().await.unwrap();
+    let mut client = pool.get().await?;
     
     let stream = client.simple_query("SELECT * from ConsCats").await?;
     let rows: Vec<Row> = stream.into_first_result().await?;
@@ -48,7 +48,7 @@ pub async fn get_categories(pool: DBPool) -> Result<Vec<Category>> {
     let cats: Vec<Category> = rows
         .iter()
         .map(|r| {
-            //debug!(target: "orders", "{:?}", r);
+            //debug!("{:?}", r);
             Category { 
                 catId: r.get("CatID").unwrap_or_default(),
                 // TODO: only try_get-unwrap_or works for this field, while for ConsOrders.TrustNum we can use just .into() (see above)
@@ -60,7 +60,7 @@ pub async fn get_categories(pool: DBPool) -> Result<Vec<Category>> {
             }})
         .collect();
 
-    info!(target: "orders", "Cats count = {}", cats.len());
+    info!("Cats count = {}", cats.len());
 
     Ok(cats)
 }

@@ -16,8 +16,8 @@ mod windows_service_main;
 
 #[macro_use] extern crate log;
 
-//#[cfg(feature = "run-windows-service")]
-//#[macro_use] extern crate windows_service;
+// #[cfg(feature = "run-windows-service")]
+// #[macro_use] extern crate windows_service;
 
 #[cfg(feature = "run-windows-service")]
 fn main() -> windows_service::Result<()> {

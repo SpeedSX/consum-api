@@ -19,9 +19,10 @@ pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + '
     if env::var_os("RUST_LOG").is_none() {
         // Set `RUST_LOG=todos=debug` to see debug logs,
         // this only shows access logs.
-        env::set_var("RUST_LOG", "orders=info,service=info");
+        env::set_var("RUST_LOG", "api=info,service=info");
     }
-    pretty_env_logger::init();
+    //pretty_env_logger::init();
+    setup_logger().ok();
 
     // Create the runtime
     let mut rt = Runtime::new().unwrap(); 
@@ -33,7 +34,7 @@ pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + '
         
         // GET /orders => 200 OK with orders list
         let api = api(db_pool)
-            .with(warp::log("orders"))
+            .with(warp::log("api"))
             .recover(problem::unpack_problem);
     
         info!(target: "service", "Listening on {}", SERVICE_CONFIG.get_addr());
@@ -42,7 +43,7 @@ pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + '
             //.unstable_pipeline()
             //.run(([127, 0, 0, 1], service_config.get_port()))
             //.run(SERVICE_CONFIG.get_addr())
-         .bind_with_graceful_shutdown(SERVICE_CONFIG.get_addr(), async move {
+         .bind_with_graceful_shutdown(SERVICE_CONFIG.get_addr(), async {
             shutdown_rx.await.ok();
          });
          server.await;
@@ -77,4 +78,22 @@ pub fn api(
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     orders(db.clone())
         .or(categories(db))
+}
+
+fn setup_logger() -> Result<(), fern::InitError> {
+    fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{}[{}][{}] {}",
+                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                record.target(),
+                record.level(),
+                message
+            ))
+        })
+        .level(log::LevelFilter::Debug)
+        .chain(std::io::stdout())
+        //.chain(fern::log_file("h:\\Projects\\consum-api\\output.log")?)
+        .apply()?;
+    Ok(())
 }
