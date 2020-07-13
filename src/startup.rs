@@ -7,7 +7,8 @@ use crate::{
     problem,
     configuration::SERVICE_CONFIG, 
     DBPool,
-    connection_manager::TiberiusConnectionManager
+    connection_manager::TiberiusConnectionManager,
+    db::DB
 };
 
 pub fn run() {
@@ -50,8 +51,8 @@ pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + '
     });
 }
 
-fn with_db(db_pool: DBPool) -> impl Filter<Extract = (DBPool,), Error = Infallible> + Clone {
-    warp::any().map(move || db_pool.clone())
+fn with_db(db_pool: DBPool) -> impl Filter<Extract = (DB,), Error = Infallible> + Clone {
+    warp::any().map(move || DB::new(db_pool.clone()))
 }
 
 pub fn orders(
