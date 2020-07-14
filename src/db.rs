@@ -79,7 +79,7 @@ impl DB {
     pub async fn create_order(&self, create_order: CreateOrder) -> Result<Option<Order>> {
         let mut client = self. db_pool.get().await?;
         let result = client.query(
-                "declare @rc int; exec up_NewAccount @P1, @P2, @P3, @P4, @P5, @P6, @P7, @P8, @P9; select @rc", 
+                "declare @rc int; exec @rc = up_NewAccount @P1, @P2, @P3, @P4, @P5, @P6, @P7, @P8, @P9; select @rc as Id", 
                 &[&create_order.accountNum,
                 &create_order.accountDate,
                 &create_order.incomeDate,
@@ -89,10 +89,12 @@ impl DB {
                 &create_order.sellerId,
                 &create_order.bySelf,
                 &create_order.comment])
-            .await?
+            .await?;
+            info!("{:?}", result);
+            let result = result
             .into_row()
             .await?;
-
+            
         let id_value: Option<i32> = result.map(|r| r.get("Id")).flatten();
         //id_value.map()
         if let Some(id) = id_value {
