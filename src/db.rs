@@ -79,7 +79,7 @@ impl DB {
     pub async fn create_order(&self, create_order: CreateOrder) -> Result<Option<Order>> {
         let mut client = self. db_pool.get().await?;
         let result = client.query(
-                "SELECT up_NewAccount @P1, @P2, @P3, @P4, @P5, @P6, @P7, @P8, @P9 AS Id", 
+                "declare @rc int; exec up_NewAccount @P1, @P2, @P3, @P4, @P5, @P6, @P7, @P8, @P9; select @rc", 
                 &[&create_order.accountNum,
                 &create_order.accountDate,
                 &create_order.incomeDate,

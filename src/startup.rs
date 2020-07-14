@@ -55,6 +55,8 @@ fn with_db(db_pool: DBPool) -> impl Filter<Extract = (DB,), Error = Infallible> 
     warp::any().map(move || DB::new(db_pool.clone()))
 }
 
+// Endpoints
+
 pub fn orders(
     db: DBPool,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -64,6 +66,24 @@ pub fn orders(
         .and_then(handlers::list_orders)
 }
 
+pub fn order(
+    db: DBPool,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("orders" / i32)
+        .and(warp::get())
+        .and(with_db(db))
+        .and_then(handlers::get_order)
+}
+
+pub fn create_order(
+    db: DBPool,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("orders")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(with_db(db))
+        .and_then(handlers::create_order)
+}
 
 pub fn categories(
     db: DBPool,
@@ -74,10 +94,14 @@ pub fn categories(
         .and_then(handlers::list_categories)
 }
 
+// Aggregate all endpoints
+
 pub fn api(
     db: DBPool,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     orders(db.clone())
+        .or(order(db.clone()))
+        .or(create_order(db.clone()))
         .or(categories(db))
 }
 
