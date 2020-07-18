@@ -27,21 +27,7 @@ impl DB {
         
         let orders: Vec<Order> = rows
             .iter()
-            .map(|r| {
-                //info!("{:?}", r);
-                Order { 
-                    consId: r.get("ConsID").unwrap_or_default(),
-                    orderState: r.get("OrderState").unwrap_or_default(),
-                    incomeDate: r.get("IncomeDate").into(),
-                    accountNum: Self::get_string(r, "AccountNum"),
-                    accountDate: r.get("AccountDate").into(),
-                    bySelf: r.get("BySelf").into(),
-                    hasTrust: r.get::<bool, &str>("HasTrust").unwrap_or_default().into(),
-                    sellerId: r.get("SellerID").unwrap_or_default(),
-                    trustNum: r.get("TrustNum").into(),
-                    trustSer: Self::get_string(r, "TrustSer"),
-                    comment: Self::get_string(r, "Comment"),
-                }})
+            .map(Self::map_order)
             .collect();
 
         info!("Orders count = {}", orders.len());
@@ -50,29 +36,12 @@ impl DB {
     }
 
     pub async fn get_order(&self, id: i32) -> Result<Option<Order>> {
-
         let mut client = self.db_pool.get().await?;
         
         let stream = client.query("SELECT * from ConsOrders where ConsID = @P1", &[&id]).await?;
         let row = stream.into_row().await?;
         
-        let order = row
-            .map(|r| {
-                //info!("{:?}", r);
-                Order { 
-                    consId: r.get("ConsID").unwrap_or_default(),
-                    orderState: r.get("OrderState").unwrap_or_default(),
-                    incomeDate: r.get("IncomeDate").into(),
-                    accountNum: Self::get_string(&r, "AccountNum"),
-                    accountDate: r.get("AccountDate").into(),
-                    bySelf: r.get("BySelf").into(),
-                    hasTrust: r.get::<bool, &str>("HasTrust").unwrap_or_default().into(),
-                    sellerId: r.get("SellerID").unwrap_or_default(),
-                    trustNum: r.get("TrustNum").into(),
-                    trustSer: Self::get_string(&r, "TrustSer"),
-                    comment: Self::get_string(&r, "Comment"),
-                }});
-
+        let order = row.as_ref().map(Self::map_order);
         Ok(order)
     }
 
@@ -102,19 +71,17 @@ impl DB {
         }
 
         Ok(None)
-        // result.map(|r| Ok(Order {
-        //     consId: r.get("Id"),
-        //     accountDate: create_order.accountDate,
-        //     accountNum: create_order.accountNum,
-        //     incomeDate: create_order.incomeDate,
-        //     bySelf: create_order.bySelf,
-        //     comment: create_order.comment,
-        //     hasTrust: create_order.hasTrust,
-        //     orderState: 0, // TODO!
-        //     sellerId: create_order.sellerId,
-        //     trustNum: create_order.trustNum,
-        //     trustSer
-        // }))
+    }
+
+    pub async fn get_category(&self, id: i32) -> Result<Option<Category>> {
+        let mut client = self.db_pool.get().await?;
+        
+        let stream = client.query("SELECT * from ConsCats where CatID = @P1", &[&id]).await?;
+        let row = stream.into_row().await?;
+        
+        let category = row.as_ref().map(Self::map_category);
+
+        Ok(category)
     }
 
     pub async fn get_categories(&self) -> Result<Vec<Category>> {
@@ -126,22 +93,42 @@ impl DB {
         
         let cats: Vec<Category> = rows
             .iter()
-            .map(|r| {
-                //debug!("{:?}", r);
-                Category { 
-                    catId: r.get("CatID").unwrap_or_default(),
-                    // TODO: only try_get-unwrap_or works for this field, while for ConsOrders.TrustNum we can use just .into() (see above)
-                    // Possibly because it comes as I8(None) instead of i32, but why?
-                    parentId: r.try_get("ParentID").unwrap_or_default(),
-                    catName: Self::get_string(r, "CatName"),
-                    catUnitCode: r.get("CatUnitCode").unwrap_or_default(),
-                    code: r.get("Code").unwrap_or_default(),
-                }})
+            .map(Self::map_category)
             .collect();
 
         info!("Cats count = {}", cats.len());
 
         Ok(cats)
+    }
+
+    fn map_order(row: &Row) -> Order {
+        trace!("Mapping row to order: {:?}", row);
+        Order { 
+            consId: row.get("ConsID").unwrap_or_default(),
+            orderState: row.get("OrderState").unwrap_or_default(),
+            incomeDate: row.get("IncomeDate").into(),
+            accountNum: Self::get_string(row, "AccountNum"),
+            accountDate: row.get("AccountDate").into(),
+            bySelf: row.get("BySelf").into(),
+            hasTrust: row.get::<bool, &str>("HasTrust").unwrap_or_default().into(),
+            sellerId: row.get("SellerID").unwrap_or_default(),
+            trustNum: row.get("TrustNum").into(),
+            trustSer: Self::get_string(row, "TrustSer"),
+            comment: Self::get_string(row, "Comment"),
+        }
+    }
+
+    fn map_category(row: &Row) -> Category {
+        trace!("Mapping row to category: {:?}", row);
+        Category { 
+            catId: row.get("CatID").unwrap_or_default(),
+            // TODO: only try_get-unwrap_or works for this field, while for ConsOrders.TrustNum we can use just .into() (see above)
+            // Possibly because it comes as I8(None) instead of i32, but why?
+            parentId: row.try_get("ParentID").unwrap_or_default(),
+            catName: Self::get_string(row, "CatName"),
+            catUnitCode: row.get("CatUnitCode").unwrap_or_default(),
+            code: row.get("Code").unwrap_or_default(),
+        }
     }
 
     fn get_string(r: &Row, col: &str) -> Option<String> {
