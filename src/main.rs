@@ -6,6 +6,7 @@ mod model;
 mod connection_manager;
 mod serialization;
 mod problem;
+mod errors;
 
 use connection_manager::TiberiusConnectionManager;
 

@@ -4,12 +4,17 @@ use warp::{
     http::{self, StatusCode},
     Rejection, Reply,
 };
+use crate::errors::DBRecordNotFound;
 
 pub fn from_anyhow(e: anyhow::Error) -> HttpApiProblem {
     let e = match e.downcast::<HttpApiProblem>() {
         Ok(problem) => return problem,
         Err(e) => e,
     };
+    if e.is::<DBRecordNotFound>() {
+        //tracing::error!("swap was not found");
+        return HttpApiProblem::new("Record not found.").set_status(StatusCode::NOT_FOUND);
+    }
     HttpApiProblem::new(format!("Internal Server Error\n{:?}", e))
         .set_status(warp::http::StatusCode::INTERNAL_SERVER_ERROR)
 }

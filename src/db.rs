@@ -3,7 +3,8 @@ use tiberius::{Row};
 
 use crate::{
     model::*,
-    DBPool
+    DBPool,
+    errors::DBRecordNotFound
 };
 
 pub struct DB {
@@ -35,17 +36,21 @@ impl DB {
         Ok(orders)
     }
 
-    pub async fn get_order(&self, id: i32) -> Result<Option<Order>> {
+    pub async fn get_order(&self, id: i32) -> Result<Order> {
         let mut client = self.db_pool.get().await?;
         
         let stream = client.query("SELECT * from ConsOrders where ConsID = @P1", &[&id]).await?;
         let row = stream.into_row().await?;
-        
-        let order = row.as_ref().map(Self::map_order);
-        Ok(order)
+
+        if let Some(order_row) = row {
+            let order = Self::map_order(&order_row);
+            return Ok(order);
+        }
+
+        anyhow::bail!(DBRecordNotFound)
     }
 
-    pub async fn create_order(&self, create_order: CreateOrder) -> Result<Option<Order>> {
+    pub async fn create_order(&self, create_order: CreateOrder) -> Result<Order> {
         let mut client = self. db_pool.get().await?;
         let result = client.query(
                 "set nocount on; declare @rc int; exec @rc = up_NewAccount @P1, @P2, @P3, @P4, @P5, @P6, @P7, @P8, @P9; select @rc as Id", 
@@ -70,7 +75,7 @@ impl DB {
             }
         }
 
-        Ok(None)
+        anyhow::bail!(DBRecordNotFound)
     }
 
     pub async fn get_category(&self, id: i32) -> Result<Option<Category>> {
