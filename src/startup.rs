@@ -102,7 +102,8 @@ pub fn api(
     orders(db.clone())
         .or(order(db.clone()))
         .or(create_order(db.clone()))
-        .or(categories(db))
+        .or(categories(db.clone()))
+    // one of these clone()'s is not required but left for consistency
 }
 
 fn setup_logger() -> Result<(), fern::InitError> {
