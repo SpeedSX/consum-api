@@ -67,15 +67,17 @@ impl bb8::ManageConnection for TiberiusConnectionManager {
     }
 
     async fn is_valid(&self, mut conn: Self::Connection) -> Result<Self::Connection, Self::Error> {
-        let query_result = conn.simple_query("SELECT 1 AS col").await?.into_row().await;
+        //let query_result = value is ignored
+        conn.simple_query("SELECT 1 AS col").await?.into_row().await?;
         // if let Ok(Some(row)) = query_result.as_ref() {
         //     let col_value: Option<i32> = row.try_get("col").ok().flatten();
         //     match col_value {
         //         Some(1) => return Ok(conn),
-        //         _ => return Err(Error::from("Wrong value".to_string())) // TODO: should use custom error type, there is no approproate enum in tiberius
+        //         TODO: probably should use custom error type, there is no appropriate enum in tiberius for this case
+        //         _ => return Err(Error::from("Wrong value".to_string())) 
         //     } 
         // }
-        query_result.map(|_| conn)
+        Ok(conn)
     }
 
     fn has_broken(&self, _: &mut Self::Connection) -> bool {

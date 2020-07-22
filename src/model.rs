@@ -24,7 +24,7 @@ pub struct Order {
 pub struct Category {
     pub catId: i32,
     pub parentId: Option<i32>,
-    pub catName: Option<String>,
+    pub catName: Option<String>, // is never null in a real DB
     pub catUnitCode: i32,
     pub code: i32
 }
@@ -41,4 +41,13 @@ pub struct CreateOrder {
     pub sellerId: i32,
     pub bySelf: Option<i32>,
     pub comment: String
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, Deserialize)]
+pub struct CreateCategory {
+    pub parentId: Option<i32>,
+    pub catName: String,
+    pub catUnitCode: i32,
+    pub code: i32
 }

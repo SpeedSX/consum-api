@@ -20,7 +20,6 @@ impl DB {
     }
 
     pub async fn get_orders(&self) -> Result<Vec<Order>> {
-
         let mut client = self.db_pool.get().await?;
         
         let stream = client.simple_query("SELECT top (100) * from ConsOrders").await?;
@@ -78,15 +77,18 @@ impl DB {
         anyhow::bail!(DBRecordNotFound)
     }
 
-    pub async fn get_category(&self, id: i32) -> Result<Option<Category>> {
+    pub async fn get_category(&self, id: i32) -> Result<Category> {
         let mut client = self.db_pool.get().await?;
         
         let stream = client.query("SELECT * from ConsCats where CatID = @P1", &[&id]).await?;
         let row = stream.into_row().await?;
         
-        let category = row.as_ref().map(Self::map_category);
+        if let Some(cat_row) = row {
+            let cat = Self::map_category(&cat_row);
+            return Ok(cat);
+        }
 
-        Ok(category)
+        anyhow::bail!(DBRecordNotFound)
     }
 
     pub async fn get_categories(&self) -> Result<Vec<Category>> {
@@ -104,6 +106,29 @@ impl DB {
         info!("Cats count = {}", cats.len());
 
         Ok(cats)
+    }
+
+    pub async fn create_category(&self, create_cat: CreateCategory) -> Result<Category> {
+        let mut client = self. db_pool.get().await?;
+        let result = client.query(
+                "set nocount on; insert into ConsCats (ParentID, CatName, CatUnitCode, Code) values (@P1, @P2, @P3, @P4); select SCOPE_IDENTITY() as Id", 
+                &[&create_cat.parentId,
+                &create_cat.catName,
+                &create_cat.catUnitCode,
+                &create_cat.code])
+            .await?
+            .into_row()
+            .await?;
+
+        if let Some(row) = result {
+            let id_value: Option<i32> = row.try_get("Id").ok().flatten();
+            if let Some(id) = id_value {
+                let cat = self.get_category(id).await?;
+                return Ok(cat);
+            }
+        }
+
+        anyhow::bail!(DBRecordNotFound)
     }
 
     fn map_order(row: &Row) -> Order {
@@ -137,6 +162,7 @@ impl DB {
     }
 
     fn get_string(r: &Row, col: &str) -> Option<String> {
-        r.get::<&str, &str>(col).map(|s| s.to_string())
+        // TODO: for now we ignore errors here, and just return None in case of incorrect column name or type
+        r.try_get::<&str, &str>(col).ok().flatten().map(|s| s.to_string())
     }
 }

@@ -94,6 +94,25 @@ pub fn categories(
         .and_then(handlers::list_categories)
 }
 
+pub fn category(
+    db: DBPool,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("categories" / i32)
+        .and(warp::get())
+        .and(with_db(db))
+        .and_then(handlers::get_category)
+}
+
+pub fn create_category(
+    db: DBPool,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("categories")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(with_db(db))
+        .and_then(handlers::create_category)
+}
+
 // Aggregate all endpoints
 
 pub fn api(
@@ -103,6 +122,8 @@ pub fn api(
         .or(order(db.clone()))
         .or(create_order(db.clone()))
         .or(categories(db.clone()))
+        .or(category(db.clone()))
+        .or(create_category(db.clone()))
     // one of these clone()'s is not required but left for consistency
 }
 

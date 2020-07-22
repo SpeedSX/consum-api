@@ -29,6 +29,20 @@ pub async fn list_categories(db: DB) -> Result<impl Reply, Rejection> {
           .map(|cats| reply::json(&cats)))
 }
 
+pub async fn get_category(id: i32, db: DB) -> Result<impl Reply, Rejection> {
+    map_result(
+        db.get_category(id)
+          .await
+          .map(|cat| reply::json(&cat)))
+}
+
+pub async fn create_category(cat: CreateCategory, db: DB) -> Result<impl Reply, Rejection> {
+    map_result(
+        db.create_category(cat)
+          .await
+          .map(|cat| reply::with_status(reply::json(&cat), StatusCode::CREATED)))
+}
+
 fn map_result(result: anyhow::Result<impl Reply>) -> Result<impl Reply, Rejection> {
     result
          .map_err(crate::problem::from_anyhow)
