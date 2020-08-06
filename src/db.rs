@@ -1,11 +1,34 @@
 use anyhow::{bail, Result};
-use tiberius::{Row};
+use tiberius::{Row, FromSql};
 
 use crate::{
     model::*,
     DBPool,
     errors::DBRecordNotFound
 };
+
+
+trait RowExt {
+    fn get_string(&self, col: &str) -> Option<String>;
+    fn get_value<'a, T>(&'a self, col: &str) -> T where T: Default + FromSql<'a>;
+    fn get_optional<'a, T>(&'a self, col: &str) -> Option<T> where T: FromSql<'a>;
+ }
+
+impl RowExt for Row {
+    // TODO: for now we ignore errors here, and just return None in case of incorrect column name or type
+
+    fn get_string(&self, col: &str) -> Option<String> {
+        self.try_get::<&str, &str>(col).ok().flatten().map(|s| s.to_string())
+    }
+
+    fn get_value<'a, T>(&'a self, col: &str) -> T where T: Default + FromSql<'a> {
+        self.try_get::<'a, T, &str>(col).ok().flatten().unwrap_or_default()
+    }
+
+    fn get_optional<'a, T>(&'a self, col: &str) -> Option<T> where T: FromSql<'a> {
+        self.try_get::<'a, T, &str>(col).ok().unwrap_or_default()
+    }
+}
 
 pub struct DB {
     db_pool: DBPool
@@ -134,35 +157,30 @@ impl DB {
     fn map_order(row: &Row) -> Order {
         trace!("Mapping row to order: {:?}", row);
         Order { 
-            consId: row.get("ConsID").unwrap_or_default(),
-            orderState: row.get("OrderState").unwrap_or_default(),
-            incomeDate: row.get("IncomeDate").into(),
-            accountNum: Self::get_string(row, "AccountNum"),
-            accountDate: row.get("AccountDate").into(),
-            bySelf: row.get("BySelf").into(),
-            hasTrust: row.get::<bool, &str>("HasTrust").unwrap_or_default().into(),
-            sellerId: row.get("SellerID").unwrap_or_default(),
-            trustNum: row.get("TrustNum").into(),
-            trustSer: Self::get_string(row, "TrustSer"),
-            comment: Self::get_string(row, "Comment"),
+            consId: row.get_value("ConsID"),
+            orderState: row.get_value("OrderState"),
+            incomeDate: row.get_optional("IncomeDate"),
+            accountNum: row.get_string("AccountNum"),
+            accountDate: row.get_optional("AccountDate"),
+            bySelf: row.get_optional("BySelf"),
+            hasTrust: row.get_value("HasTrust"),
+            sellerId: row.get_value("SellerID"),
+            trustNum: row.get_optional("TrustNum"),
+            trustSer: row.get_string("TrustSer"),
+            comment: row.get_string("Comment"),
         }
     }
 
     fn map_category(row: &Row) -> Category {
         trace!("Mapping row to category: {:?}", row);
         Category { 
-            catId: row.get("CatID").unwrap_or_default(),
+            catId: row.get_value("CatID"),
             // TODO: only try_get-unwrap_or works for this field, while for ConsOrders.TrustNum we can use just .into() (see above)
             // Possibly because it comes as I8(None) instead of i32, but why?
-            parentId: row.try_get("ParentID").unwrap_or_default(),
-            catName: Self::get_string(row, "CatName"),
-            catUnitCode: row.get("CatUnitCode").unwrap_or_default(),
-            code: row.get("Code").unwrap_or_default(),
+            parentId: row.get_optional("ParentID"),
+            catName: row.get_string("CatName"),
+            catUnitCode: row.get_value("CatUnitCode"),
+            code: row.get_value("Code"),
         }
-    }
-
-    fn get_string(r: &Row, col: &str) -> Option<String> {
-        // TODO: for now we ignore errors here, and just return None in case of incorrect column name or type
-        r.try_get::<&str, &str>(col).ok().flatten().map(|s| s.to_string())
     }
 }
