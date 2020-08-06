@@ -32,6 +32,7 @@ pub struct Category {
 
 #[allow(non_snake_case)]
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CreateOrder {
     pub accountNum: String,
     pub accountDate: NaiveDateTime,
@@ -46,6 +47,7 @@ pub struct CreateOrder {
 
 #[allow(non_snake_case)]
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CreateCategory {
     pub parentId: Option<i32>,
     pub catName: String,
