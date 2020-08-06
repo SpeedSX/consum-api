@@ -7,7 +7,6 @@ use crate::{
     errors::DBRecordNotFound
 };
 
-
 trait RowExt {
     fn get_string(&self, col: &str) -> Option<String>;
     fn get_value<'a, T>(&'a self, col: &str) -> T where T: Default + FromSql<'a>;
@@ -15,7 +14,7 @@ trait RowExt {
  }
 
 impl RowExt for Row {
-    // TODO: for now we ignore errors here, and just return None in case of incorrect column name or type
+    // TODO: for now we ignore errors here, and just return 'None' in case of incorrect column name or type
 
     fn get_string(&self, col: &str) -> Option<String> {
         self.try_get::<&str, &str>(col).ok().flatten().map(|s| s.to_string())
@@ -175,8 +174,6 @@ impl DB {
         trace!("Mapping row to category: {:?}", row);
         Category { 
             catId: row.get_value("CatID"),
-            // TODO: only try_get-unwrap_or works for this field, while for ConsOrders.TrustNum we can use just .into() (see above)
-            // Possibly because it comes as I8(None) instead of i32, but why?
             parentId: row.get_optional("ParentID"),
             catName: row.get_string("CatName"),
             catUnitCode: row.get_value("CatUnitCode"),
