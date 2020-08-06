@@ -68,7 +68,8 @@ impl bb8::ManageConnection for TiberiusConnectionManager {
 
     async fn is_valid(&self, mut conn: Self::Connection) -> Result<Self::Connection, Self::Error> {
         //let query_result = value is ignored
-        conn.simple_query("SELECT 1 AS col").await?.into_row().await?;
+        //conn.simple_query("SELECT 1 AS col").await?.into_row().await?;
+        conn.simple_query("").await?.into_row().await?;
         // if let Ok(Some(row)) = query_result.as_ref() {
         //     let col_value: Option<i32> = row.try_get("col").ok().flatten();
         //     match col_value {

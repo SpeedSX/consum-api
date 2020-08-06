@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use tiberius::{Row};
 
 use crate::{
@@ -46,13 +46,13 @@ impl DB {
             return Ok(order);
         }
 
-        anyhow::bail!(DBRecordNotFound)
+        bail!(DBRecordNotFound)
     }
 
     pub async fn create_order(&self, create_order: CreateOrder) -> Result<Order> {
         let mut client = self. db_pool.get().await?;
         let result = client.query(
-                "set nocount on; declare @rc int; exec @rc = up_NewAccount @P1, @P2, @P3, @P4, @P5, @P6, @P7, @P8, @P9; select @rc as Id", 
+                "declare @rc int; exec @rc = up_NewAccount @P1, @P2, @P3, @P4, @P5, @P6, @P7, @P8, @P9; select @rc as Id", 
                 &[&create_order.accountNum,
                 &create_order.accountDate,
                 &create_order.incomeDate,
@@ -74,7 +74,7 @@ impl DB {
             }
         }
 
-        anyhow::bail!(DBRecordNotFound)
+        bail!(DBRecordNotFound)
     }
 
     pub async fn get_category(&self, id: i32) -> Result<Category> {
@@ -88,7 +88,7 @@ impl DB {
             return Ok(cat);
         }
 
-        anyhow::bail!(DBRecordNotFound)
+        bail!(DBRecordNotFound)
     }
 
     pub async fn get_categories(&self) -> Result<Vec<Category>> {
@@ -111,7 +111,7 @@ impl DB {
     pub async fn create_category(&self, create_cat: CreateCategory) -> Result<Category> {
         let mut client = self. db_pool.get().await?;
         let result = client.query(
-                "set nocount on; insert into ConsCats (ParentID, CatName, CatUnitCode, Code) values (@P1, @P2, @P3, @P4); select SCOPE_IDENTITY() as Id", 
+                "insert into ConsCats (ParentID, CatName, CatUnitCode, Code) values (@P1, @P2, @P3, @P4); select SCOPE_IDENTITY() as Id", 
                 &[&create_cat.parentId,
                 &create_cat.catName,
                 &create_cat.catUnitCode,
@@ -128,7 +128,7 @@ impl DB {
             }
         }
 
-        anyhow::bail!(DBRecordNotFound)
+        bail!(DBRecordNotFound)
     }
 
     fn map_order(row: &Row) -> Order {
