@@ -7,6 +7,7 @@ mod connection_manager;
 mod serialization;
 mod problem;
 mod errors;
+mod url_part_utf8_string;
 
 use connection_manager::TiberiusConnectionManager;
 

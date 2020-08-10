@@ -8,7 +8,8 @@ use crate::{
     configuration::SERVICE_CONFIG, 
     DBPool,
     connection_manager::TiberiusConnectionManager,
-    db::DB
+    db::DB, 
+    url_part_utf8_string::UrlPartUtf8String
 };
 
 pub fn run() {
@@ -131,11 +132,14 @@ pub fn supplier_by_id(
 pub fn supplier_by_name(
     db: DBPool,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    warp::path!("suppliers" / "name" / String)
+    warp::path!("suppliers" / "name" / UrlPartUtf8String)
         .and(warp::get())
         .and(with_db(db))
         .and_then(handlers::get_supplier_by_name)
 }
+//let author_route = warp::path!("rust-reviews" / "author" / UrlPartUtf8String)
+//        .map(|author_id: UrlPartUtf8String | {
+//            let author_id = author_id.to_string();
 
 // Aggregate all endpoints
 

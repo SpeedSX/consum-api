@@ -181,9 +181,9 @@ impl DB {
         bail!(DBRecordNotFound)
     }
 
-    pub async fn get_supplier_by_name(&self, name: &str) -> Result<Supplier> {
+    pub async fn get_supplier_by_name(&self, name: String) -> Result<Supplier> {
         let mut client = self.db_pool.get().await?;
-        
+        debug!("{}", name);
         let stream = client.query("SELECT * from Seller where SellerName = @P1", &[&name]).await?;
         let row = stream.into_row().await?;
 

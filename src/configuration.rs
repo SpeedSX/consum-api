@@ -63,7 +63,7 @@ static LOG_PATH: Lazy<Option<String>> = Lazy::new(|| {
     env::var("CONSUM_LOG_PATH")
         .map(|path|
             if path.to_uppercase() == "DEFAULT" {  
-                env::current_dir()
+                env::current_exe()
                     .map(|dir| dir.as_path().with_file_name(DEFAULT_LOG_NAME).to_string_lossy().to_string())
                     .unwrap_or(path)
             } else {
