@@ -172,7 +172,7 @@ fn setup_logger() -> Result<(), fern::InitError> {
     }
 
     if let Some(path) = SERVICE_CONFIG.get_log_path() {
-        debug!("Logging to file {}", path);
+        println!("Logging to file {}", path);
         //logger = logger.chain(fern::log_file("h:\\Projects\\consum-api\\output.log")?)
         logger = logger.chain(fern::log_file(path)?)
     }
