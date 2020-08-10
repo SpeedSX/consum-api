@@ -43,6 +43,27 @@ pub async fn create_category(cat: CreateCategory, db: DB) -> Result<impl Reply, 
           .map(|cat| reply::with_status(reply::json(&cat), StatusCode::CREATED)))
 }
 
+pub async fn delete_category(id: i32, db: DB) -> Result<impl Reply, Rejection> {
+    map_result(
+        db.delete_category(id)
+          .await
+          .map(|()| reply::reply()))
+}
+
+pub async fn get_supplier_by_id(id: i32, db: DB) -> Result<impl Reply, Rejection> {
+    map_result(
+        db.get_supplier_by_id(id)
+          .await
+          .map(|supplier| reply::json(&supplier)))
+}
+
+pub async fn get_supplier_by_name(name: String, db: DB) -> Result<impl Reply, Rejection> {
+    map_result(
+        db.get_supplier_by_name(&name)
+          .await
+          .map(|supplier| reply::json(&supplier)))
+}
+
 fn map_result(result: anyhow::Result<impl Reply>) -> Result<impl Reply, Rejection> {
     result
          .map_err(crate::problem::from_anyhow)

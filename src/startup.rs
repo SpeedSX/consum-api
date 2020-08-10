@@ -41,12 +41,9 @@ pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + '
         info!(target: "service", "Listening on {}", SERVICE_CONFIG.get_addr());
 
         let (_addr, server) = warp::serve(api)
-            //.unstable_pipeline()
-            //.run(([127, 0, 0, 1], service_config.get_port()))
-            //.run(SERVICE_CONFIG.get_addr())
-         .bind_with_graceful_shutdown(SERVICE_CONFIG.get_addr(), async {
-            shutdown_rx.await.ok();
-         });
+           .bind_with_graceful_shutdown(SERVICE_CONFIG.get_addr(), async {
+              shutdown_rx.await.ok();
+           });
          server.await;
     });
 }
@@ -113,6 +110,33 @@ pub fn create_category(
         .and_then(handlers::create_category)
 }
 
+pub fn delete_category(
+    db: DBPool,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("categories" / i32)
+        .and(warp::delete())
+        .and(with_db(db))
+        .and_then(handlers::delete_category)
+}
+
+pub fn supplier_by_id(
+    db: DBPool,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("suppliers" / i32)
+        .and(warp::get())
+        .and(with_db(db))
+        .and_then(handlers::get_supplier_by_id)
+}
+
+pub fn supplier_by_name(
+    db: DBPool,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("suppliers" / "name" / String)
+        .and(warp::get())
+        .and(with_db(db))
+        .and_then(handlers::get_supplier_by_name)
+}
+
 // Aggregate all endpoints
 
 pub fn api(
@@ -124,11 +148,14 @@ pub fn api(
         .or(categories(db.clone()))
         .or(category(db.clone()))
         .or(create_category(db.clone()))
+        .or(delete_category(db.clone()))
+        .or(supplier_by_id(db.clone()))
+        .or(supplier_by_name(db.clone()))
     // one of these clone()'s is not required but left for consistency
 }
 
 fn setup_logger() -> Result<(), fern::InitError> {
-    fern::Dispatch::new()
+    let mut logger = fern::Dispatch::new()
         .format(|out, message, record| {
             out.finish(format_args!(
                 "{}[{}][{}] {}",
@@ -138,9 +165,19 @@ fn setup_logger() -> Result<(), fern::InitError> {
                 message
             ))
         })
-        .level(log::LevelFilter::Debug)
-        .chain(std::io::stdout())
-        //.chain(fern::log_file("h:\\Projects\\consum-api\\output.log")?)
-        .apply()?;
+        .level(log::LevelFilter::Debug);
+
+    if SERVICE_CONFIG.stdout_enabled() {
+        logger = logger.chain(std::io::stdout());
+    }
+
+    if let Some(path) = SERVICE_CONFIG.get_log_path() {
+        debug!("Logging to file {}", path);
+        //logger = logger.chain(fern::log_file("h:\\Projects\\consum-api\\output.log")?)
+        logger = logger.chain(fern::log_file(path)?)
+    }
+
+    logger.apply()?;
+
     Ok(())
 }

@@ -62,22 +62,15 @@ impl bb8::ManageConnection for TiberiusConnectionManager {
 
         let tcp = TcpStream::connect(&self.config.get_addr()).await?;
         tcp.set_nodelay(true)?;
-    
+
+        //debug!("Connecting...");
+
         Client::connect(self.config.clone(), tcp.compat_write()).await
     }
 
     async fn is_valid(&self, mut conn: Self::Connection) -> Result<Self::Connection, Self::Error> {
-        //let query_result = value is ignored
-        //conn.simple_query("SELECT 1 AS col").await?.into_row().await?;
+        //debug!("Checking {:?}", conn);
         conn.simple_query("").await?.into_row().await?;
-        // if let Ok(Some(row)) = query_result.as_ref() {
-        //     let col_value: Option<i32> = row.try_get("col").ok().flatten();
-        //     match col_value {
-        //         Some(1) => return Ok(conn),
-        //         TODO: probably should use custom error type, there is no appropriate enum in tiberius for this case
-        //         _ => return Err(Error::from("Wrong value".to_string())) 
-        //     } 
-        // }
         Ok(conn)
     }
 

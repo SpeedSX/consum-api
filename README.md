@@ -15,6 +15,8 @@ Aimed to run on both Windows and Linux, tested on Windows only so far.
 - `SET CONSUM_ADDR=192.168.0.1:8080` or whatever needed (default is 127.0.0.1:3030)
 - `SET CONSUM_CONNECTION_STRING=connection_string`, where connection_string to MSSQL DB is like `Server=ServerName;Database=Consum;User=Username;Password=Pa2386274`. *DB must exist, script is not included!*
 - `SET CONSUM_MAX_POOL=10` - database connection pool size (default is 10)
+- `SET CONSUM_STDOUT=true|false` - defines if log should write to console (default is true)
+- `SET CONSUM_LOG_PATH=path|default` - specifies log path (must be full) or 'default' to write to default file name
 - `cargo run --release`
 
 ## Running as Windows service

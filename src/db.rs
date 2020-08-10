@@ -72,7 +72,7 @@ impl DB {
     }
 
     pub async fn create_order(&self, create_order: CreateOrder) -> Result<Order> {
-        let mut client = self. db_pool.get().await?;
+        let mut client = self.db_pool.get().await?;
         let result = client.query(
                 "declare @rc int; exec @rc = up_NewAccount @P1, @P2, @P3, @P4, @P5, @P6, @P7, @P8, @P9; select @rc as Id", 
                 &[&create_order.accountNum,
@@ -81,7 +81,7 @@ impl DB {
                 &create_order.hasTrust,
                 &create_order.trustSer,
                 &create_order.trustNum,
-                &create_order.sellerId,
+                &create_order.supplierId,
                 &create_order.bySelf,
                 &create_order.comment])
             .await?
@@ -131,7 +131,7 @@ impl DB {
     }
 
     pub async fn create_category(&self, create_cat: CreateCategory) -> Result<Category> {
-        let mut client = self. db_pool.get().await?;
+        let mut client = self.db_pool.get().await?;
         let result = client.query(
                 "insert into ConsCats (ParentID, CatName, CatUnitCode, Code) values (@P1, @P2, @P3, @P4); select SCOPE_IDENTITY() as Id", 
                 &[&create_cat.parentId,
@@ -153,6 +153,48 @@ impl DB {
         bail!(DBRecordNotFound)
     }
 
+    pub async fn delete_category(&self, id: i32) -> Result<()> {
+        let mut client = self.db_pool.get().await?;
+        
+        let result = client.execute("DELETE from ConsCats where CatID = @P1", &[&id]).await?;
+
+        if let Some(count) = result.rows_affected().first() {
+            if count > &0 {
+                return Ok(())
+            }
+        }
+
+        bail!(DBRecordNotFound)
+    }
+
+    pub async fn get_supplier_by_id(&self, id: i32) -> Result<Supplier> {
+        let mut client = self.db_pool.get().await?;
+        
+        let stream = client.query("SELECT * from Seller where SellerID = @P1", &[&id]).await?;
+        let row = stream.into_row().await?;
+
+        if let Some(seller_row) = row {
+            let seller = Self::map_supplier(&seller_row);
+            return Ok(seller);
+        }
+
+        bail!(DBRecordNotFound)
+    }
+
+    pub async fn get_supplier_by_name(&self, name: &str) -> Result<Supplier> {
+        let mut client = self.db_pool.get().await?;
+        
+        let stream = client.query("SELECT * from Seller where SellerName = @P1", &[&name]).await?;
+        let row = stream.into_row().await?;
+
+        if let Some(seller_row) = row {
+            let seller = Self::map_supplier(&seller_row);
+            return Ok(seller);
+        }
+
+        bail!(DBRecordNotFound)
+    }
+
     fn map_order(row: &Row) -> Order {
         trace!("Mapping row to order: {:?}", row);
         Order { 
@@ -163,7 +205,7 @@ impl DB {
             accountDate: row.get_optional("AccountDate"),
             bySelf: row.get_optional("BySelf"),
             hasTrust: row.get_value("HasTrust"),
-            sellerId: row.get_value("SellerID"),
+            supplierId: row.get_value("SellerID"),
             trustNum: row.get_optional("TrustNum"),
             trustSer: row.get_string("TrustSer"),
             comment: row.get_string("Comment"),
@@ -178,6 +220,25 @@ impl DB {
             catName: row.get_string("CatName"),
             catUnitCode: row.get_value("CatUnitCode"),
             code: row.get_value("Code"),
+        }
+    }
+
+    fn map_supplier(row: &Row) -> Supplier {
+        trace!("Mapping row to supplier: {:?}", row);
+        Supplier { 
+            supplierId: row.get_value("SellerID"),
+            supplierName: row.get_string("SellerName"),
+            supplierPhone: row.get_string("SellerPhone"),
+            supplierFax: row.get_string("SellerFax"),
+            supplierManager: row.get_string("SellerManager"),
+            supplierEmail: row.get_string("SellerEmail"),
+            supplierAddressDoc: row.get_string("SellerAddressDoc"),
+            supplierAddressFact: row.get_string("SellerAddressFact"),
+            supplierAddressStore: row.get_string("SellerAddressStore"),
+            supplierStoreTime: row.get_string("SellerStoreTime"),
+            supplierStoreWho: row.get_string("SellerStoreWho"),
+            supplierStorePhone: row.get_string("SellerStorePhone"),
+            supplierFullName: row.get_string("SellerFullName"),
         }
     }
 }

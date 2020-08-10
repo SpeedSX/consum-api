@@ -2,9 +2,11 @@ use once_cell::sync::Lazy;
 use std::{net::{IpAddr, SocketAddr, Ipv4Addr}, env};
 
 //static DEFAULT_HOST: [u32; 4] = [127, 0, 0, 1];
-static DEFAULT_PORT: u16 = 3030;
+const DEFAULT_PORT: u16 = 3030;
 static DEFAULT_CONNECTION_STRING: &str = "server=tcp:localhost\\SQLEXPRESS,1433;User=sa;Password=sas;Database=Consum";
-static DEFAULT_MAX_POOL: u32 = 10;
+const DEFAULT_MAX_POOL: u32 = 10;
+const DEFAULT_STDOUT: bool = true;
+const DEFAULT_LOG_NAME: &str = "output.log";
 
 pub struct Configuration {
 }
@@ -20,6 +22,14 @@ impl Configuration {
 
     pub fn get_addr(&self) -> SocketAddr {
         *ADDR
+    }
+
+    pub fn stdout_enabled(&self) -> bool {
+        *STDOUT
+    }
+
+    pub fn get_log_path(&self) -> Option<&String> {
+        LOG_PATH.as_ref()
     }
 }
 
@@ -41,4 +51,23 @@ static ADDR: Lazy<SocketAddr> = Lazy::new(|| {
     env::var("CONSUM_ADDR")
         .map(|s| s.parse::<SocketAddr>().unwrap_or(default))
         .unwrap_or_else(|_| default)
+});
+
+static STDOUT: Lazy<bool> = Lazy::new(|| {
+    env::var("CONSUM_STDOUT")
+        .map(|s| s.parse::<bool>().unwrap_or(DEFAULT_STDOUT))
+        .unwrap_or(DEFAULT_STDOUT)
+});
+
+static LOG_PATH: Lazy<Option<String>> = Lazy::new(|| {
+    env::var("CONSUM_LOG_PATH")
+        .map(|path| 
+            if path.to_uppercase() == "DEFAULT" {  
+                env::current_dir()
+                    .map(|dir| dir.as_path().with_file_name(DEFAULT_LOG_NAME).to_string_lossy().to_string())
+                    .unwrap_or(path)
+            } else {
+                path 
+            })
+        .ok()
 });

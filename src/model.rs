@@ -9,7 +9,7 @@ pub struct Order {
     pub orderState: i32,
     #[serde(serialize_with = "serialize_optional_datetime")]
     pub incomeDate: Option<NaiveDateTime>,
-    pub sellerId: i32,
+    pub supplierId: i32,
     pub accountNum: Option<String>,
     #[serde(serialize_with = "serialize_optional_datetime")]
     pub accountDate: Option<NaiveDateTime>,
@@ -30,6 +30,25 @@ pub struct Category {
     pub code: i32
 }
 
+
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize)]
+pub struct Supplier {
+    pub supplierId: i32,
+    pub supplierName: Option<String>,
+    pub supplierPhone: Option<String>,
+    pub supplierFax: Option<String>,
+    pub supplierManager: Option<String>,
+    pub supplierEmail: Option<String>,
+    pub supplierAddressDoc: Option<String>,
+    pub supplierAddressFact: Option<String>,
+    pub supplierAddressStore: Option<String>,
+    pub supplierStoreTime: Option<String>,
+    pub supplierStoreWho: Option<String>,
+    pub supplierStorePhone: Option<String>,
+    pub supplierFullName: Option<String>,
+}
+
 #[allow(non_snake_case)]
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -40,7 +59,7 @@ pub struct CreateOrder {
     pub hasTrust: bool,
     pub trustSer: Option<String>,
     pub trustNum: Option<i32>,
-    pub sellerId: i32,
+    pub supplierId: i32,
     pub bySelf: Option<i32>,
     pub comment: String
 }
