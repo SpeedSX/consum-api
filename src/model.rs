@@ -17,7 +17,8 @@ pub struct Order {
     pub hasTrust: bool,
     pub trustSer: Option<String>,
     pub trustNum: Option<i32>,
-    pub comment: Option<String>
+    pub comment: Option<String>,
+    pub enterpriseId: i32
 }
 
 #[allow(non_snake_case)]
@@ -61,7 +62,8 @@ pub struct CreateOrder {
     pub trustNum: Option<i32>,
     pub supplierId: i32,
     pub bySelf: Option<i32>,
-    pub comment: String
+    pub comment: String,
+    pub enterpriseId: i32
 }
 
 #[allow(non_snake_case)]

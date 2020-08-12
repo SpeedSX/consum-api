@@ -88,7 +88,7 @@ impl DB {
     pub async fn create_order(&self, create_order: CreateOrder) -> Result<Order> {
         let mut client = self.db_pool.get().await?;
         let result = client.query(
-                "declare @rc int; exec @rc = up_NewAccount @P1, @P2, @P3, @P4, @P5, @P6, @P7, @P8, @P9; select @rc as Id", 
+                "declare @rc int; exec @rc = up_NewAccount @P1, @P2, @P3, @P4, @P5, @P6, @P7, @P8, @P9, @P10; select @rc as Id", 
                 &[&create_order.accountNum,
                 &create_order.accountDate,
                 &create_order.incomeDate,
@@ -97,7 +97,8 @@ impl DB {
                 &create_order.trustNum,
                 &create_order.supplierId,
                 &create_order.bySelf,
-                &create_order.comment])
+                &create_order.comment,
+                &create_order.enterpriseId])
             .await?
             .into_row()
             .await?;
@@ -243,6 +244,8 @@ impl DB {
         bail!(DBRecordNotFound)
     }
 
+    // TODO: mapping should return an error when required field not found or conversion error, for now just fills with default value
+
     fn map_order(row: &Row) -> Order {
         trace!("Mapping row to order: {:?}", row);
         Order { 
@@ -257,6 +260,7 @@ impl DB {
             trustNum: row.get_optional("TrustNum"),
             trustSer: row.get_string("TrustSer"),
             comment: row.get_string("Comment"),
+            enterpriseId: row.get_value("EnterpriseID")
         }
     }
 
