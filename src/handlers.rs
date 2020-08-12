@@ -68,6 +68,13 @@ pub async fn get_supplier_by_name(name: UrlPartUtf8String, db: DB) -> Result<imp
           .map(|supplier| reply::json(&supplier)))
 }
 
+pub async fn create_supplier(supplier: CreateSupplier, db: DB) -> Result<impl Reply, Rejection> {
+    map_result(
+        db.create_supplier(supplier)
+          .await
+          .map(|supplier| reply::with_status(reply::json(&supplier), StatusCode::CREATED)))
+}
+
 fn map_result(result: anyhow::Result<impl Reply>) -> Result<impl Reply, Rejection> {
     result
          .map_err(crate::problem::from_anyhow)

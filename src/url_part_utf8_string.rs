@@ -4,6 +4,7 @@ use percent_encoding::{percent_decode_str, AsciiSet, CONTROLS};
 use std::string::ToString;
 
 /// https://url.spec.whatwg.org/#fragment-percent-encode-set
+#[allow(dead_code)]
 const FRAGMENT: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
 
 /// the url must be utf 8. Only the 5 control characters are encoded.
@@ -18,16 +19,19 @@ pub struct UrlPartUtf8String {
 
 impl UrlPartUtf8String {
     /// constructor from decoded (normal) string
+    #[allow(dead_code)]
     pub fn new_from_decoded_string(s: &str) -> Self {
         UrlPartUtf8String { 
             s: s.to_string()
         }
     }
     /// get encoded string
+    #[allow(dead_code)]
     pub fn get_encoded_string(&self)->String{
         Self::encode_fragment(&self.s)
     }
     /// encode fragment / part - associated fn
+    #[allow(dead_code)]
     pub fn encode_fragment(s: &str) -> String {
         percent_encoding::utf8_percent_encode(s, FRAGMENT).to_string()
     }

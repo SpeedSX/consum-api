@@ -67,6 +67,24 @@ pub struct CreateOrder {
 #[allow(non_snake_case)]
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct CreateSupplier {
+    pub supplierName: Option<String>,
+    pub supplierPhone: Option<String>,
+    pub supplierFax: Option<String>,
+    pub supplierManager: Option<String>,
+    pub supplierEmail: Option<String>,
+    pub supplierAddressDoc: Option<String>,
+    pub supplierAddressFact: Option<String>,
+    pub supplierAddressStore: Option<String>,
+    pub supplierStoreTime: Option<String>,
+    pub supplierStoreWho: Option<String>,
+    pub supplierStorePhone: Option<String>,
+    pub supplierFullName: Option<String>,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CreateCategory {
     pub parentId: Option<i32>,
     pub catName: String,

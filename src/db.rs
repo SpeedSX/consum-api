@@ -43,7 +43,21 @@ impl DB {
 
     pub async fn get_orders(&self) -> Result<Vec<Order>> {
         let mut client = self.db_pool.get().await?;
+        // 'select ConsID, EnterpriseID, '
+        // '   IncomeDate, AccountNum, AccountDate,'
         
+        //   '   (select sum(AccountGrn) from ConsOrderItem coi where coi.Cons' +
+        //   'ID = cr.ConsID) as AccountGrn,'
+        // '   cr.SellerID, BySelf, HasTrust, TrustSer, TrustNum,'
+        
+        //   '   (select sum(PaidGrn) from ConsPayment cp where cp.ConsID = cr' +
+        //   '.ConsID) as PaidGrn,'
+        // '   cr.Comment'
+        
+        //   'from ConsOrders cr left join Seller s on cr.SellerID = s.SellerI' +
+        //   'D'
+        // '&Range'
+        // 'order by &Sort'
         let stream = client.simple_query("SELECT top (100) * from ConsOrders").await?;
         let rows: Vec<Row> = stream.into_first_result().await?;
         
@@ -183,13 +197,47 @@ impl DB {
 
     pub async fn get_supplier_by_name(&self, name: String) -> Result<Supplier> {
         let mut client = self.db_pool.get().await?;
-        debug!("{}", name);
+
         let stream = client.query("SELECT * from Seller where SellerName = @P1", &[&name]).await?;
         let row = stream.into_row().await?;
 
         if let Some(seller_row) = row {
             let seller = Self::map_supplier(&seller_row);
             return Ok(seller);
+        }
+
+        bail!(DBRecordNotFound)
+    }
+
+    pub async fn create_supplier(&self, create_supplier: CreateSupplier) -> Result<Supplier> {
+        let mut client = self.db_pool.get().await?;
+        let result = client.query(
+                "insert into Seller (SellerName, SellerPhone, SellerFax, SellerManager, SellerEmail, SellerAddressDoc, SellerAddressFact, SellerAddressStore, SellerStoreTime, SellerStoreWho, SellerStorePhone, SellerFullName) \
+                values (@P1, @P2, @P3, @P4, @P5, @P6, @P7, @P8, @P9, @P10, @P11, @P12); select CAST(SCOPE_IDENTITY() as int) as Id", 
+                &[&create_supplier.supplierName,
+                &create_supplier.supplierPhone,
+                &create_supplier.supplierFax,
+                &create_supplier.supplierManager,
+                &create_supplier.supplierEmail,
+                &create_supplier.supplierAddressDoc,
+                &create_supplier.supplierAddressFact,
+                &create_supplier.supplierAddressStore,
+                &create_supplier.supplierStoreTime,
+                &create_supplier.supplierStoreWho,
+                &create_supplier.supplierStorePhone,
+                &create_supplier.supplierFullName
+                ])
+            .await?
+            .into_row()
+            .await?;
+
+        if let Some(row) = result {
+            //debug!("{:?}", r);
+            let id_value: Option<i32> = row.try_get("Id").ok().flatten();
+            if let Some(id) = id_value {
+                let supplier = self.get_supplier_by_id(id).await?;
+                return Ok(supplier);
+            }
         }
 
         bail!(DBRecordNotFound)

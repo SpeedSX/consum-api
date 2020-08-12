@@ -137,11 +137,18 @@ pub fn supplier_by_name(
         .and(with_db(db))
         .and_then(handlers::get_supplier_by_name)
 }
-//let author_route = warp::path!("rust-reviews" / "author" / UrlPartUtf8String)
-//        .map(|author_id: UrlPartUtf8String | {
-//            let author_id = author_id.to_string();
 
 // Aggregate all endpoints
+
+pub fn create_supplier(
+    db: DBPool,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("suppliers")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(with_db(db))
+        .and_then(handlers::create_supplier)
+}
 
 pub fn api(
     db: DBPool,
@@ -155,6 +162,7 @@ pub fn api(
         .or(delete_category(db.clone()))
         .or(supplier_by_id(db.clone()))
         .or(supplier_by_name(db.clone()))
+        .or(create_supplier(db.clone()))
     // one of these clone()'s is not required but left for consistency
 }
 
@@ -177,7 +185,6 @@ fn setup_logger() -> Result<(), fern::InitError> {
 
     if let Some(path) = SERVICE_CONFIG.get_log_path() {
         println!("Logging to file {}", path);
-        //logger = logger.chain(fern::log_file("h:\\Projects\\consum-api\\output.log")?)
         logger = logger.chain(fern::log_file(path)?)
     }
 
