@@ -103,7 +103,7 @@ impl DB {
             .await?;
 
         if let Some(row) = result {
-            let id_value: Option<i32> = row.try_get("Id").ok().flatten();
+            let id_value = row.try_get::<i32, &str>("Id")?;
             if let Some(id) = id_value {
                 let order = self.get_order(id).await?;
                 return Ok(order);
@@ -147,7 +147,7 @@ impl DB {
     pub async fn create_category(&self, create_cat: CreateCategory) -> Result<Category> {
         let mut client = self.db_pool.get().await?;
         let result = client.query(
-                "insert into ConsCats (ParentID, CatName, CatUnitCode, Code) values (@P1, @P2, @P3, @P4); select SCOPE_IDENTITY() as Id", 
+                "insert into ConsCats (ParentID, CatName, CatUnitCode, Code) values (@P1, @P2, @P3, @P4); select CAST(SCOPE_IDENTITY() as int) as Id", 
                 &[&create_cat.parentId,
                 &create_cat.catName,
                 &create_cat.catUnitCode,
@@ -157,7 +157,7 @@ impl DB {
             .await?;
 
         if let Some(row) = result {
-            let id_value: Option<i32> = row.try_get("Id").ok().flatten();
+            let id_value = row.try_get::<i32, &str>("Id")?;
             if let Some(id) = id_value {
                 let cat = self.get_category(id).await?;
                 return Ok(cat);
@@ -233,7 +233,7 @@ impl DB {
 
         if let Some(row) = result {
             //debug!("{:?}", r);
-            let id_value: Option<i32> = row.try_get("Id").ok().flatten();
+            let id_value = row.try_get::<i32, &str>("Id")?;
             if let Some(id) = id_value {
                 let supplier = self.get_supplier_by_id(id).await?;
                 return Ok(supplier);
