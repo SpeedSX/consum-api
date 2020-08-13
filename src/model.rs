@@ -93,3 +93,13 @@ pub struct CreateCategory {
     pub catUnitCode: i32,
     pub code: i32
 }
+
+#[derive(Debug, Deserialize)]
+pub struct ApiKey {
+    pub api_key: String,
+}
+
+#[derive(Debug)]
+pub struct User {
+    pub name: String,
+}

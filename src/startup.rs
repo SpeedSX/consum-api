@@ -1,7 +1,11 @@
 use std::{convert::Infallible, env};
 use warp::Filter;
-use tokio::{runtime::Runtime, sync::oneshot::{self, Receiver}};
+use tokio::{
+    runtime::Runtime, 
+    sync::oneshot::{self, Receiver}
+};
 use tiberius::Config;
+use http_api_problem::HttpApiProblem;
 use crate::{
     handlers,
     problem,
@@ -9,7 +13,8 @@ use crate::{
     DBPool,
     connection_manager::TiberiusConnectionManager,
     db::DB, 
-    url_part_utf8_string::UrlPartUtf8String
+    url_part_utf8_string::UrlPartUtf8String,
+    model::*, 
 };
 
 pub fn run() {
@@ -34,7 +39,12 @@ pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + '
         let manager = TiberiusConnectionManager::new(Config::from_ado_string(SERVICE_CONFIG.get_connection_string()).unwrap()).unwrap();
         let db_pool = bb8::Pool::builder().max_size(SERVICE_CONFIG.get_max_pool()).build_unchecked(manager);
         
-        // GET /orders => 200 OK with orders list
+        // auth check middleware
+        // let auth_check = warp::header::<String>("authorization").map(|token| {
+        //     let configure = config();
+        //     jwt_verify(configure, token)
+        // });
+
         let api = api(db_pool)
             .with(warp::log("api"))
             .recover(problem::unpack_problem);
@@ -64,11 +74,25 @@ pub fn orders(
         .and_then(handlers::list_orders)
 }
 
+fn auth_check() -> impl Filter<Extract = (User,), Error = warp::Rejection> + Copy {
+    warp::query().and_then(|key: ApiKey| async move {
+        // TODO: implement actual key verification
+        if key.api_key == "AA" {
+            Ok(User {name: key.api_key})
+        } else {
+            Err(warp::reject::custom(
+                HttpApiProblem::new(format!("Invalid API key\n{:?}", key.api_key))
+                    .set_status(warp::http::StatusCode::UNAUTHORIZED)))
+        }
+    })
+}
+
 pub fn order(
     db: DBPool,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("orders" / i32)
         .and(warp::get())
+        .and(auth_check())
         .and(with_db(db))
         .and_then(handlers::get_order)
 }

@@ -3,6 +3,7 @@ use crate::{
     model::*,
     url_part_utf8_string::UrlPartUtf8String
 };
+use anyhow::Result;
 use warp::{self, Rejection, Reply, reply, http::StatusCode};
 
 pub async fn list_orders(db: DB) -> Result<impl Reply, Rejection> {
@@ -12,7 +13,8 @@ pub async fn list_orders(db: DB) -> Result<impl Reply, Rejection> {
           .map(|orders| reply::json(&orders)))
 }
 
-pub async fn get_order(id: i32, db: DB) -> Result<impl Reply, Rejection> {
+pub async fn get_order(id: i32, user: User, db: DB) -> Result<impl Reply, Rejection> {
+    info!("user name = {:?}", user);
     map_result(
         db.get_order(id)
           .await
