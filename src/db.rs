@@ -4,28 +4,51 @@ use tiberius::{Row, FromSql};
 use crate::{
     model::*,
     DBPool,
-    errors::DBRecordNotFound
+    errors::{MissingRequiredField, DBRecordNotFound}
 };
 
 trait RowExt {
-    fn get_string(&self, col: &str) -> Option<String>;
-    fn get_value<'a, T>(&'a self, col: &str) -> T where T: Default + FromSql<'a>;
-    fn get_optional<'a, T>(&'a self, col: &str) -> Option<T> where T: FromSql<'a>;
- }
+    // fn get_string(&self, col: &str) -> Option<String>;
+    // fn get_value<'a, T>(&'a self, col: &str) -> T where T: Default + FromSql<'a>;
+    // fn get_optional<'a, T>(&'a self, col: &str) -> Option<T> where T: FromSql<'a>;
+
+    fn try_get_string(&self, col: &str) -> Result<Option<String>>;
+    fn try_get_value<'a, T>(&'a self, col: &str) -> Result<T> where T: Default + FromSql<'a>;
+    fn try_get_required<'a, T>(&'a self, col: &str) -> Result<T> where T: FromSql<'a>;
+}
 
 impl RowExt for Row {
-    // TODO: for now we ignore errors here, and just return 'None' in case of incorrect column name or type
+    // methods which ignore errors - not used now 
 
-    fn get_string(&self, col: &str) -> Option<String> {
-        self.try_get::<&str, &str>(col).ok().flatten().map(|s| s.to_string())
+    // fn get_string(&self, col: &str) -> Option<String> {
+    //     self.try_get::<&str, &str>(col).ok().flatten().map(|s| s.to_string())
+    // }
+
+    // fn get_value<'a, T>(&'a self, col: &str) -> T where T: Default + FromSql<'a> {
+    //     self.try_get::<'a, T, &str>(col).ok().flatten().unwrap_or_default()
+    // }
+
+    // fn get_optional<'a, T>(&'a self, col: &str) -> Option<T> where T: FromSql<'a> {
+    //     self.try_get::<'a, T, &str>(col).ok().unwrap_or_default()
+    // }
+
+    fn try_get_string(&self, col: &str) -> Result<Option<String>> {
+        let value = self.try_get::<&str, &str>(col)?;
+        Ok(value.map(|s| s.to_string()))
     }
 
-    fn get_value<'a, T>(&'a self, col: &str) -> T where T: Default + FromSql<'a> {
-        self.try_get::<'a, T, &str>(col).ok().flatten().unwrap_or_default()
+    fn try_get_value<'a, T>(&'a self, col: &str) -> Result<T> where T: Default + FromSql<'a> {
+        let value = self.try_get::<'a, T, &str>(col)?;
+        Ok(value.unwrap_or_default())
     }
 
-    fn get_optional<'a, T>(&'a self, col: &str) -> Option<T> where T: FromSql<'a> {
-        self.try_get::<'a, T, &str>(col).ok().unwrap_or_default()
+    fn try_get_required<'a, T>(&'a self, col: &str) -> Result<T> where T: FromSql<'a> {
+        let value = self.try_get::<'a, T, &str>(col)?;
+        if let Some(v) = value {
+            return Ok(v);
+        }
+
+        bail!(MissingRequiredField)
     }
 }
 
@@ -61,14 +84,17 @@ impl DB {
         let stream = client.simple_query("SELECT top (100) * from ConsOrders").await?;
         let rows: Vec<Row> = stream.into_first_result().await?;
         
-        let orders: Vec<Order> = rows
+        let orders: Result<Vec<_>> = rows
             .iter()
-            .map(Self::map_order)
+            .map(Self::try_map_order)
             .collect();
 
-        info!("Orders count = {}", orders.len());
+        if let Ok(list) = orders {
+            info!("Orders count = {}", list.len());
+            return Ok(list);
+        }
 
-        Ok(orders)
+        orders
     }
 
     pub async fn get_order(&self, id: i32) -> Result<Order> {
@@ -78,7 +104,7 @@ impl DB {
         let row = stream.into_row().await?;
 
         if let Some(order_row) = row {
-            let order = Self::map_order(&order_row);
+            let order = Self::try_map_order(&order_row)?;
             return Ok(order);
         }
 
@@ -121,7 +147,7 @@ impl DB {
         let row = stream.into_row().await?;
         
         if let Some(cat_row) = row {
-            let cat = Self::map_category(&cat_row);
+            let cat = Self::try_map_category(&cat_row)?;
             return Ok(cat);
         }
 
@@ -129,20 +155,22 @@ impl DB {
     }
 
     pub async fn get_categories(&self) -> Result<Vec<Category>> {
-
         let mut client = self.db_pool.get().await?;
         
         let stream = client.simple_query("SELECT * from ConsCats").await?;
         let rows: Vec<Row> = stream.into_first_result().await?;
         
-        let cats: Vec<Category> = rows
+        let mapped_cats: Result<Vec<_>> = rows
             .iter()
-            .map(Self::map_category)
+            .map(Self::try_map_category)
             .collect();
 
-        info!("Cats count = {}", cats.len());
+        if let Ok(cats) = mapped_cats {
+            info!("Cats count = {}", cats.len());
+            return Ok(cats);
+        }
 
-        Ok(cats)
+        mapped_cats
     }
 
     pub async fn create_category(&self, create_cat: CreateCategory) -> Result<Category> {
@@ -189,7 +217,7 @@ impl DB {
         let row = stream.into_row().await?;
 
         if let Some(seller_row) = row {
-            let seller = Self::map_supplier(&seller_row);
+            let seller = Self::try_map_supplier(&seller_row)?;
             return Ok(seller);
         }
 
@@ -203,7 +231,7 @@ impl DB {
         let row = stream.into_row().await?;
 
         if let Some(seller_row) = row {
-            let seller = Self::map_supplier(&seller_row);
+            let seller = Self::try_map_supplier(&seller_row)?;
             return Ok(seller);
         }
 
@@ -244,53 +272,51 @@ impl DB {
         bail!(DBRecordNotFound)
     }
 
-    // TODO: mapping should return an error when required field not found or conversion error, for now just fills with default value
-
-    fn map_order(row: &Row) -> Order {
-        trace!("Mapping row to order: {:?}", row);
-        Order { 
-            consId: row.get_value("ConsID"),
-            orderState: row.get_value("OrderState"),
-            incomeDate: row.get_optional("IncomeDate"),
-            accountNum: row.get_string("AccountNum"),
-            accountDate: row.get_optional("AccountDate"),
-            bySelf: row.get_optional("BySelf"),
-            hasTrust: row.get_value("HasTrust"),
-            supplierId: row.get_value("SellerID"),
-            trustNum: row.get_optional("TrustNum"),
-            trustSer: row.get_string("TrustSer"),
-            comment: row.get_string("Comment"),
-            enterpriseId: row.get_value("EnterpriseID")
-        }
+    fn try_map_order(row: &Row) -> Result<Order> {
+        trace!("Try mapping row to order: {:?}", row);
+        Ok(Order { 
+            consId: row.try_get_required("ConsID")?,
+            orderState: row.try_get_value("OrderState")?,
+            incomeDate: row.try_get("IncomeDate")?,
+            accountNum: row.try_get_string("AccountNum")?,
+            accountDate: row.try_get("AccountDate")?,
+            bySelf: row.try_get("BySelf")?,
+            hasTrust: row.try_get_value("HasTrust")?,
+            supplierId: row.try_get_value("SellerID")?,
+            trustNum: row.try_get("TrustNum")?,
+            trustSer: row.try_get_string("TrustSer")?,
+            comment: row.try_get_string("Comment")?,
+            enterpriseId: row.try_get_value("EnterpriseID")?
+        })
     }
 
-    fn map_category(row: &Row) -> Category {
-        trace!("Mapping row to category: {:?}", row);
-        Category { 
-            catId: row.get_value("CatID"),
-            parentId: row.get_optional("ParentID"),
-            catName: row.get_string("CatName"),
-            catUnitCode: row.get_value("CatUnitCode"),
-            code: row.get_value("Code"),
-        }
+    fn try_map_category(row: &Row) -> Result<Category> {
+        trace!("Try mapping row to category: {:?}", row);
+        Ok(Category { 
+            catId: row.try_get_required("CatID")?,
+            parentId: row.try_get("ParentID")?,
+            catName: row.try_get_string("CatName")?,
+            catUnitCode: row.try_get_value("CatUnitCode")?,
+            code: row.try_get_value("Code")?,
+        })
     }
 
-    fn map_supplier(row: &Row) -> Supplier {
-        trace!("Mapping row to supplier: {:?}", row);
-        Supplier { 
-            supplierId: row.get_value("SellerID"),
-            supplierName: row.get_string("SellerName"),
-            supplierPhone: row.get_string("SellerPhone"),
-            supplierFax: row.get_string("SellerFax"),
-            supplierManager: row.get_string("SellerManager"),
-            supplierEmail: row.get_string("SellerEmail"),
-            supplierAddressDoc: row.get_string("SellerAddressDoc"),
-            supplierAddressFact: row.get_string("SellerAddressFact"),
-            supplierAddressStore: row.get_string("SellerAddressStore"),
-            supplierStoreTime: row.get_string("SellerStoreTime"),
-            supplierStoreWho: row.get_string("SellerStoreWho"),
-            supplierStorePhone: row.get_string("SellerStorePhone"),
-            supplierFullName: row.get_string("SellerFullName"),
-        }
+    fn try_map_supplier(row: &Row) -> Result<Supplier> {
+        trace!("Try mapping row to supplier: {:?}", row);
+        Ok(Supplier { 
+            supplierId: row.try_get_required("SellerID")?,
+            supplierName: row.try_get_string("SellerName")?,
+            supplierPhone: row.try_get_string("SellerPhone")?,
+            supplierFax: row.try_get_string("SellerFax")?,
+            supplierManager: row.try_get_string("SellerManager")?,
+            supplierEmail: row.try_get_string("SellerEmail")?,
+            supplierAddressDoc: row.try_get_string("SellerAddressDoc")?,
+            supplierAddressFact: row.try_get_string("SellerAddressFact")?,
+            supplierAddressStore: row.try_get_string("SellerAddressStore")?,
+            supplierStoreTime: row.try_get_string("SellerStoreTime")?,
+            supplierStoreWho: row.try_get_string("SellerStoreWho")?,
+            supplierStorePhone: row.try_get_string("SellerStorePhone")?,
+            supplierFullName: row.try_get_string("SellerFullName")?,
+        })
     }
 }
