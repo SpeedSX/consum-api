@@ -1,4 +1,4 @@
-use chrono::{Duration, Utc};
+use chrono::{Duration, Utc, DateTime};
 use jsonwebtoken::errors::Result;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
@@ -24,15 +24,27 @@ impl Claims {
     pub fn user_id(&self) -> &str {
         &self.sub
     }
+
+    pub fn with_expiration(mut self, exp: DateTime<Utc>) -> Self {
+        self.exp = exp.timestamp() as u64;
+        self
+    }
 }
 
-pub fn encode_token(secret: &str, sub: &str) -> String {
+pub fn try_encode_token(secret: &str, sub: &str) -> Result<String> {
     encode(
         &Header::default(),
         &Claims::new(sub),
         &EncodingKey::from_secret(secret.as_ref()),
     )
-    .unwrap()
+}
+
+pub fn try_encode_token_exp(secret: &str, sub: &str, exp: DateTime<Utc>) -> Result<String> {
+    encode(
+        &Header::default(),
+        &Claims::new(sub).with_expiration(exp),
+        &EncodingKey::from_secret(secret.as_ref()),
+    )
 }
 
 pub fn decode_token(secret: &str, token: &str) -> Result<Claims> {
@@ -51,7 +63,7 @@ mod tests {
     #[test]
     fn encode_decode_token() {
         let sub = "test";
-        let token = encode_token("secret", sub);
+        let token = try_encode_token("secret", sub).unwrap();
         let decoded = decode::<Claims>(
             &token,
             &DecodingKey::from_secret("secret".as_ref()),

@@ -17,6 +17,7 @@ use crate::{
     model::*, 
     auth, 
 };
+use chrono::DateTime;
 
 pub fn run() {
     let (_tx, rx) = oneshot::channel::<()>();
@@ -45,7 +46,9 @@ pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + '
             .recover(problem::unpack_problem);
     
         info!(target: "service", "Listening on {}", SERVICE_CONFIG.get_addr());
-        info!("Auth token {:?}", auth::encode_token(SERVICE_CONFIG.get_jwt_secret(), "1"));
+        // Generate and show token
+        let token = auth::try_encode_token_exp(SERVICE_CONFIG.get_jwt_secret(), "1", DateTime::parse_from_rfc3339("2030-01-01T01:01:01.00Z").unwrap().into()).unwrap();
+        info!("Auth token {:?}", token);
 
         let (_addr, server) = warp::serve(api)
            .bind_with_graceful_shutdown(SERVICE_CONFIG.get_addr(), async {
@@ -59,6 +62,20 @@ fn with_db(db_pool: DBPool) -> impl Filter<Extract = (DB,), Error = Infallible> 
     warp::any().map(move || DB::new(db_pool.clone()))
 }
 
+// API key verification
+fn auth_check() -> impl Filter<Extract = (User,), Error = warp::Rejection> + Copy {
+    warp::query().and_then(|key: ApiKey| async move {
+        let jwt_secret = SERVICE_CONFIG.get_jwt_secret();
+        let claims = auth::decode_token(jwt_secret, &key.api_key);
+        match claims {
+            Ok(claims) => Ok(User { id: claims.user_id().to_owned() }),
+            Err(err) => Err(warp::reject::custom(
+                HttpApiProblem::new(format!("Invalid API key: {:?}", err.kind()))
+                    .set_status(warp::http::StatusCode::UNAUTHORIZED)))
+        }
+    })
+}
+
 // Endpoints
 
 pub fn orders(
@@ -68,20 +85,6 @@ pub fn orders(
         .and(warp::get())
         .and(with_db(db))
         .and_then(handlers::list_orders)
-}
-
-fn auth_check() -> impl Filter<Extract = (User,), Error = warp::Rejection> + Copy {
-    warp::query().and_then(|key: ApiKey| async move {
-        let jwt_secret = SERVICE_CONFIG.get_jwt_secret();
-        // API key verification
-        let claims = auth::decode_token(jwt_secret, &key.api_key);
-        match claims {
-            Ok(claims) => Ok(User { id: claims.user_id().to_owned() }),
-            Err(err) => Err(warp::reject::custom(
-                HttpApiProblem::new(format!("Invalid API key: {:?}", err.kind()))
-                    .set_status(warp::http::StatusCode::UNAUTHORIZED)))
-        }
-    })
 }
 
 pub fn order(
