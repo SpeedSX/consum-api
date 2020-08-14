@@ -17,6 +17,7 @@ Aimed to run on both Windows and Linux, tested on Windows only so far.
 - `SET CONSUM_MAX_POOL=10` - database connection pool size (default is 10)
 - `SET CONSUM_STDOUT=true|false` - defines if log should write to console (default is true)
 - `SET CONSUM_LOG_PATH=path|default` - specifies log path (must be full) or 'default' to write to default file name
+- `SET CONSUM_JWT_SECRET=token` - optional, specifies JWT secret value for API key
 - `cargo run --release`
 
 ## Running as Windows service
