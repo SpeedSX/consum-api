@@ -15,6 +15,7 @@ use crate::{
     db::DB, 
     url_part_utf8_string::UrlPartUtf8String,
     model::*, 
+    auth, 
 };
 
 pub fn run() {
@@ -39,17 +40,12 @@ pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + '
         let manager = TiberiusConnectionManager::new(Config::from_ado_string(SERVICE_CONFIG.get_connection_string()).unwrap()).unwrap();
         let db_pool = bb8::Pool::builder().max_size(SERVICE_CONFIG.get_max_pool()).build_unchecked(manager);
         
-        // auth check middleware
-        // let auth_check = warp::header::<String>("authorization").map(|token| {
-        //     let configure = config();
-        //     jwt_verify(configure, token)
-        // });
-
-        let api = api(db_pool)
+          let api = api(db_pool)
             .with(warp::log("api"))
             .recover(problem::unpack_problem);
     
         info!(target: "service", "Listening on {}", SERVICE_CONFIG.get_addr());
+        info!("Auth token {:?}", auth::encode_token(SERVICE_CONFIG.get_jwt_secret(), "1"));
 
         let (_addr, server) = warp::serve(api)
            .bind_with_graceful_shutdown(SERVICE_CONFIG.get_addr(), async {
@@ -76,12 +72,13 @@ pub fn orders(
 
 fn auth_check() -> impl Filter<Extract = (User,), Error = warp::Rejection> + Copy {
     warp::query().and_then(|key: ApiKey| async move {
-        // TODO: implement actual key verification
-        if key.api_key == "AA" {
-            Ok(User {name: key.api_key})
-        } else {
-            Err(warp::reject::custom(
-                HttpApiProblem::new(format!("Invalid API key\n{:?}", key.api_key))
+        let jwt_secret = SERVICE_CONFIG.get_jwt_secret();
+        // API key verification
+        let claims = auth::decode_token(jwt_secret, &key.api_key);
+        match claims {
+            Ok(claims) => Ok(User { id: claims.user_id().to_owned() }),
+            Err(err) => Err(warp::reject::custom(
+                HttpApiProblem::new(format!("Invalid API key: {:?}", err.kind()))
                     .set_status(warp::http::StatusCode::UNAUTHORIZED)))
         }
     })

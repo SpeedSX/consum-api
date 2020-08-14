@@ -7,6 +7,7 @@ static DEFAULT_CONNECTION_STRING: &str = "server=tcp:localhost\\SQLEXPRESS,1433;
 const DEFAULT_MAX_POOL: u32 = 10;
 const DEFAULT_STDOUT: bool = true;
 const DEFAULT_LOG_NAME: &str = "output.log";
+const DEFAULT_JWT_SECRET: &str = "consum_jwt_secret";
 
 pub struct Configuration {
 }
@@ -30,6 +31,10 @@ impl Configuration {
 
     pub fn get_log_path(&self) -> Option<&String> {
         LOG_PATH.as_ref()
+    }
+
+    pub fn get_jwt_secret(&self) -> &str {
+        &JWT_SECRET
     }
 }
 
@@ -70,4 +75,9 @@ static LOG_PATH: Lazy<Option<String>> = Lazy::new(|| {
                 path 
             })
         .ok()
+});
+
+static JWT_SECRET: Lazy<String> = Lazy::new(|| {
+    env::var("CONSUM_JWT_SECRET")
+        .unwrap_or_else(|_| String::from(DEFAULT_JWT_SECRET))
 });
