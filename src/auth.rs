@@ -63,7 +63,7 @@ mod tests {
     #[test]
     fn encode_decode_token() {
         let sub = "test";
-        let token = try_encode_token("secret", sub).unwrap();
+        let token = _try_encode_token("secret", sub).unwrap();
         let decoded = decode::<Claims>(
             &token,
             &DecodingKey::from_secret("secret".as_ref()),
