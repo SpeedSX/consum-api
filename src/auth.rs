@@ -31,7 +31,7 @@ impl Claims {
     }
 }
 
-pub fn try_encode_token(secret: &str, sub: &str) -> Result<String> {
+pub fn _try_encode_token(secret: &str, sub: &str) -> Result<String> {
     encode(
         &Header::default(),
         &Claims::new(sub),

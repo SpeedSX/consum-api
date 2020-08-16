@@ -9,7 +9,7 @@ use http_api_problem::HttpApiProblem;
 use crate::{
     handlers,
     problem,
-    configuration::SERVICE_CONFIG, 
+    configuration, 
     DBPool,
     connection_manager::TiberiusConnectionManager,
     db::DB, 
@@ -38,20 +38,21 @@ pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + '
     
     // Spawn the root task
     rt.block_on(async {
-        let manager = TiberiusConnectionManager::new(Config::from_ado_string(SERVICE_CONFIG.get_connection_string()).unwrap()).unwrap();
-        let db_pool = bb8::Pool::builder().max_size(SERVICE_CONFIG.get_max_pool()).build_unchecked(manager);
+        let config = configuration::get();
+        let manager = TiberiusConnectionManager::new(Config::from_ado_string(config.connection_string()).unwrap()).unwrap();
+        let db_pool = bb8::Pool::builder().max_size(config.max_pool()).build_unchecked(manager);
         
           let api = api(db_pool)
             .with(warp::log("api"))
             .recover(problem::unpack_problem);
     
-        info!(target: "service", "Listening on {}", SERVICE_CONFIG.get_addr());
+        info!(target: "service", "Listening on {}", config.addr());
         // Generate and show token
-        let token = auth::try_encode_token_exp(SERVICE_CONFIG.get_jwt_secret(), "1", DateTime::parse_from_rfc3339("2030-01-01T01:01:01.00Z").unwrap().into()).unwrap();
+        let token = auth::try_encode_token_exp(config.jwt_secret(), "1", DateTime::parse_from_rfc3339("2030-01-01T01:01:01.00Z").unwrap().into()).unwrap();
         info!("Auth token {:?}", token);
 
         let (_addr, server) = warp::serve(api)
-           .bind_with_graceful_shutdown(SERVICE_CONFIG.get_addr(), async {
+           .bind_with_graceful_shutdown(config.addr(), async {
               shutdown_rx.await.ok();
            });
          server.await;
@@ -65,7 +66,7 @@ fn with_db(db_pool: DBPool) -> impl Filter<Extract = (DB,), Error = Infallible> 
 // API key verification
 fn auth_check() -> impl Filter<Extract = (User,), Error = warp::Rejection> + Copy {
     warp::query().and_then(|key: ApiKey| async move {
-        let jwt_secret = SERVICE_CONFIG.get_jwt_secret();
+        let jwt_secret = configuration::get().jwt_secret();
         let claims = auth::decode_token(jwt_secret, &key.api_key);
         match claims {
             Ok(claims) => Ok(User { id: claims.user_id().to_owned() }),
@@ -83,6 +84,7 @@ pub fn orders(
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("orders")
         .and(warp::get())
+        .and(auth_check())
         .and(with_db(db))
         .and_then(handlers::list_orders)
 }
@@ -103,6 +105,7 @@ pub fn create_order(
     warp::path!("orders")
         .and(warp::post())
         .and(warp::body::json())
+        .and(auth_check())
         .and(with_db(db))
         .and_then(handlers::create_order)
 }
@@ -112,6 +115,7 @@ pub fn categories(
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("categories")
         .and(warp::get())
+        .and(auth_check())
         .and(with_db(db))
         .and_then(handlers::list_categories)
 }
@@ -121,6 +125,7 @@ pub fn category(
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("categories" / i32)
         .and(warp::get())
+        .and(auth_check())
         .and(with_db(db))
         .and_then(handlers::get_category)
 }
@@ -131,6 +136,7 @@ pub fn create_category(
     warp::path!("categories")
         .and(warp::post())
         .and(warp::body::json())
+        .and(auth_check())
         .and(with_db(db))
         .and_then(handlers::create_category)
 }
@@ -140,6 +146,7 @@ pub fn delete_category(
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("categories" / i32)
         .and(warp::delete())
+        .and(auth_check())
         .and(with_db(db))
         .and_then(handlers::delete_category)
 }
@@ -149,6 +156,7 @@ pub fn supplier_by_id(
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("suppliers" / i32)
         .and(warp::get())
+        .and(auth_check())
         .and(with_db(db))
         .and_then(handlers::get_supplier_by_id)
 }
@@ -158,11 +166,10 @@ pub fn supplier_by_name(
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     warp::path!("suppliers" / "name" / UrlPartUtf8String)
         .and(warp::get())
+        .and(auth_check())
         .and(with_db(db))
         .and_then(handlers::get_supplier_by_name)
 }
-
-// Aggregate all endpoints
 
 pub fn create_supplier(
     db: DBPool,
@@ -170,9 +177,12 @@ pub fn create_supplier(
     warp::path!("suppliers")
         .and(warp::post())
         .and(warp::body::json())
+        .and(auth_check())
         .and(with_db(db))
         .and_then(handlers::create_supplier)
 }
+
+// Aggregate all endpoints
 
 pub fn api(
     db: DBPool,
@@ -203,11 +213,11 @@ fn setup_logger() -> Result<(), fern::InitError> {
         })
         .level(log::LevelFilter::Debug);
 
-    if SERVICE_CONFIG.stdout_enabled() {
+    if configuration::get().stdout_enabled() {
         logger = logger.chain(std::io::stdout());
     }
 
-    if let Some(path) = SERVICE_CONFIG.get_log_path() {
+    if let Some(path) = configuration::get().log_path() {
         println!("Logging to file {}", path);
         logger = logger.chain(fern::log_file(path)?)
     }
