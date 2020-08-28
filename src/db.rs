@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::{bail, Result, Context};
 use tiberius::{Row, FromSql};
 
 use crate::{
@@ -14,6 +14,7 @@ trait RowExt {
 
     fn try_get_string(&self, col: &str) -> Result<Option<String>>;
     fn try_get_value<'a, T>(&'a self, col: &str) -> Result<T> where T: Default + FromSql<'a>;
+    fn try_get_optional<'a, T>(&'a self, col: &str) -> Result<Option<T>> where T: FromSql<'a>;
     fn try_get_required<'a, T>(&'a self, col: &str) -> Result<T> where T: FromSql<'a>;
 }
 
@@ -38,12 +39,17 @@ impl RowExt for Row {
     }
 
     fn try_get_value<'a, T>(&'a self, col: &str) -> Result<T> where T: Default + FromSql<'a> {
-        let value = self.try_get::<'a, T, &str>(col)?;
+        let value = self.try_get::<'a, T, &str>(col).with_context(|| format!("Failed to retrieve value from field '{}'", col))?;
         Ok(value.unwrap_or_default())
     }
 
+    fn try_get_optional<'a, T>(&'a self, col: &str) -> Result<Option<T>> where T: FromSql<'a> {
+         let value = self.try_get::<'a, T, &str>(col).with_context(|| format!("Failed to retrieve optional value from field '{}'", col))?;
+         Ok(value)
+    }
+
     fn try_get_required<'a, T>(&'a self, col: &str) -> Result<T> where T: FromSql<'a> {
-        let value = self.try_get::<'a, T, &str>(col)?;
+        let value = self.try_get::<'a, T, &str>(col).with_context(|| format!("Failed to retrieve required value from field '{}'", col))?;
         if let Some(v) = value {
             return Ok(v);
         }
@@ -66,27 +72,39 @@ impl DB {
 
     pub async fn get_orders(&self) -> Result<Vec<Order>> {
         let mut client = self.db_pool.get().await?;
-        // 'select ConsID, EnterpriseID, '
-        // '   IncomeDate, AccountNum, AccountDate,'
-        
-        //   '   (select sum(AccountGrn) from ConsOrderItem coi where coi.Cons' +
-        //   'ID = cr.ConsID) as AccountGrn,'
-        // '   cr.SellerID, BySelf, HasTrust, TrustSer, TrustNum,'
-        
-        //   '   (select sum(PaidGrn) from ConsPayment cp where cp.ConsID = cr' +
-        //   '.ConsID) as PaidGrn,'
-        // '   cr.Comment'
-        
-        //   'from ConsOrders cr left join Seller s on cr.SellerID = s.SellerI' +
-        //   'D'
-        // '&Range'
-        // 'order by &Sort'
         let stream = client.simple_query("SELECT top (100) * from ConsOrders").await?;
         let rows: Vec<Row> = stream.into_first_result().await?;
         
         let orders: Result<Vec<_>> = rows
             .iter()
             .map(Self::try_map_order)
+            .collect();
+
+        if let Ok(list) = orders {
+            info!("Orders count = {}", list.len());
+            return Ok(list);
+        }
+
+        orders
+    }
+
+    pub async fn get_orders_filtered(&self, filter: ViewFilter) -> Result<Vec<OrderView>> {
+        let mut client = self.db_pool.get().await?;
+
+        let mut query_sql = "select ConsID, EnterpriseID, IncomeDate, AccountNum, AccountDate, \
+           ISNULL((select sum(AccountGrn) from ConsOrderItem coi where coi.ConsID = cr.ConsID), 0) as AccountGrn, \
+           cr.SellerID, BySelf, HasTrust, TrustSer, TrustNum, \
+           ISNULL((select sum(PaidGrn) from ConsPayment cp where cp.ConsID = cr.ConsID), 0) as PaidGrn, cr.Comment \
+           from ConsOrders cr left join Seller s on cr.SellerID = s.SellerID".to_string();
+        if let Some(order) = filter.orderBy {
+            query_sql.push_str(&(" order by ".to_string() + &order));
+        }
+        let stream = client.simple_query(query_sql).await?;
+        let rows: Vec<Row> = stream.into_first_result().await?;
+        
+        let orders: Result<Vec<_>> = rows
+            .iter()
+            .map(Self::try_map_order_view)
             .collect();
 
         if let Ok(list) = orders {
@@ -272,21 +290,61 @@ impl DB {
         bail!(DBRecordNotFound)
     }
 
+    // select PayID, cr.SellerID, PayDate, PaidGrn, cp.ConsID, AccountNum, PayDocNum
+    // from ConsPayment cp
+    //   inner join ConsOrders cr on cp.ConsID = cr.ConsID
+    //   left join Seller s on cr.SellerID = s.SellerID
+    // order by PayDate
+    
+    // select ItemID, ConsID, Num, CatCode, AccountGrn, AccountPrice, ManualFix
+    // from ConsOrderItem
+    // where ConsID = @P1
+    // order by ItemID
+
+    // select PayID, ConsID, PayDate, PaidGrn, PayDocNum
+    // from ConsPayment
+    // where ConsID = @P1
+    // order by PayDate
+
+    // select ReqID, RequestState, RequestDate, UserCode, CatCode, NeedDate, Num, CancelRequest, RefuseRequest
+    // from ConsReqs
+    // where CancelRequest = 0 and RefuseRequest = 0
+    // order by RequestDate
+
     fn try_map_order(row: &Row) -> Result<Order> {
         trace!("Try mapping row to order: {:?}", row);
         Ok(Order { 
             consId: row.try_get_required("ConsID")?,
             orderState: row.try_get_value("OrderState")?,
-            incomeDate: row.try_get("IncomeDate")?,
+            incomeDate: row.try_get_optional("IncomeDate")?,
             accountNum: row.try_get_string("AccountNum")?,
-            accountDate: row.try_get("AccountDate")?,
-            bySelf: row.try_get("BySelf")?,
+            accountDate: row.try_get_optional("AccountDate")?,
+            bySelf: row.try_get_optional("BySelf")?,
             hasTrust: row.try_get_value("HasTrust")?,
             supplierId: row.try_get_value("SellerID")?,
-            trustNum: row.try_get("TrustNum")?,
+            trustNum: row.try_get_optional("TrustNum")?,
             trustSer: row.try_get_string("TrustSer")?,
             comment: row.try_get_string("Comment")?,
-            enterpriseId: row.try_get_value("EnterpriseID")?
+            enterpriseId: row.try_get_value("EnterpriseID")?,
+        })
+    }
+
+    fn try_map_order_view(row: &Row) -> Result<OrderView> {
+        trace!("Try mapping row to order view: {:?}", row);
+        Ok(OrderView { 
+            consId: row.try_get_required("ConsID")?,
+            incomeDate: row.try_get_optional("IncomeDate")?,
+            accountNum: row.try_get_string("AccountNum")?,
+            accountDate: row.try_get_optional("AccountDate")?,
+            bySelf: row.try_get_optional("BySelf")?,
+            hasTrust: row.try_get_value("HasTrust")?,
+            supplierId: row.try_get_value("SellerID")?,
+            trustNum: row.try_get_optional("TrustNum")?,
+            trustSer: row.try_get_string("TrustSer")?,
+            comment: row.try_get_string("Comment")?,
+            enterpriseId: row.try_get_value("EnterpriseID")?,
+            paidGrn: row.try_get_value("PaidGrn")?,
+            accountGrn: row.try_get_value("AccountGrn")?,
         })
     }
 
@@ -294,7 +352,7 @@ impl DB {
         trace!("Try mapping row to category: {:?}", row);
         Ok(Category { 
             catId: row.try_get_required("CatID")?,
-            parentId: row.try_get("ParentID")?,
+            parentId: row.try_get_optional("ParentID")?,
             catName: row.try_get_string("CatName")?,
             catUnitCode: row.try_get_value("CatUnitCode")?,
             code: row.try_get_value("Code")?,

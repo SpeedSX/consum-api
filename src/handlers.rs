@@ -13,6 +13,13 @@ pub async fn list_orders(_user: User, db: DB) -> Result<impl Reply, Rejection> {
           .map(|orders| reply::json(&orders)))
 }
 
+pub async fn list_orders_filtered(filter: ViewFilter, _user: User, db: DB) -> Result<impl Reply, Rejection> {
+    map_result(
+        db.get_orders_filtered(filter)
+          .await
+          .map(|orders| reply::json(&orders)))
+}
+
 pub async fn get_order(id: i32, _user: User, db: DB) -> Result<impl Reply, Rejection> {
     map_result(
         db.get_order(id)

@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use tiberius::time::chrono::NaiveDateTime;
+use tiberius::{numeric::Decimal, time::chrono::NaiveDateTime};
 use crate::serialization::serialize_optional_datetime;
 
 #[allow(non_snake_case)]
@@ -18,7 +18,33 @@ pub struct Order {
     pub trustSer: Option<String>,
     pub trustNum: Option<i32>,
     pub comment: Option<String>,
-    pub enterpriseId: i32
+    pub enterpriseId: i32,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize)]
+pub struct OrderView {
+    pub consId: i32,
+    #[serde(serialize_with = "serialize_optional_datetime")]
+    pub incomeDate: Option<NaiveDateTime>,
+    pub supplierId: i32,
+    pub accountNum: Option<String>,
+    #[serde(serialize_with = "serialize_optional_datetime")]
+    pub accountDate: Option<NaiveDateTime>,
+    pub bySelf: Option<i32>,
+    pub hasTrust: bool,
+    pub trustSer: Option<String>,
+    pub trustNum: Option<i32>,
+    pub comment: Option<String>,
+    pub enterpriseId: i32,
+    pub paidGrn: Decimal,
+    pub accountGrn: Decimal
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ViewFilter {
+    pub orderBy: Option<String>,
 }
 
 #[allow(non_snake_case)]
@@ -28,9 +54,8 @@ pub struct Category {
     pub parentId: Option<i32>,
     pub catName: Option<String>, // is never null in a real DB
     pub catUnitCode: i32,
-    pub code: i32
+    pub code: i32,
 }
-
 
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize)]
@@ -63,7 +88,7 @@ pub struct CreateOrder {
     pub supplierId: i32,
     pub bySelf: Option<i32>,
     pub comment: String,
-    pub enterpriseId: i32
+    pub enterpriseId: i32,
 }
 
 #[allow(non_snake_case)]
@@ -91,7 +116,7 @@ pub struct CreateCategory {
     pub parentId: Option<i32>,
     pub catName: String,
     pub catUnitCode: i32,
-    pub code: i32
+    pub code: i32,
 }
 
 #[derive(Debug, Deserialize)]

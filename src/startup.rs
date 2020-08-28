@@ -4,7 +4,7 @@ use tokio::{
     runtime::Runtime, 
     sync::oneshot::{self, Receiver}
 };
-use tiberius::Config;
+use tiberius::{Config};
 use http_api_problem::HttpApiProblem;
 use crate::{
     handlers,
@@ -18,6 +18,7 @@ use crate::{
     auth, 
 };
 use chrono::DateTime;
+use configuration::Configuration;
 
 pub fn run() {
     let (_tx, rx) = oneshot::channel::<()>();
@@ -42,14 +43,17 @@ pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + '
         let manager = TiberiusConnectionManager::new(Config::from_ado_string(config.connection_string()).unwrap()).unwrap();
         let db_pool = bb8::Pool::builder().max_size(config.max_pool()).build_unchecked(manager);
         
-          let api = api(db_pool)
+        //test(db_pool.clone()).await;
+        
+        let api = api(db_pool)
             .with(warp::log("api"))
             .recover(problem::unpack_problem);
     
         info!(target: "service", "Listening on {}", config.addr());
-        // Generate and show token
-        let token = auth::try_encode_token_exp(config.jwt_secret(), "1", DateTime::parse_from_rfc3339("2030-01-01T01:01:01.00Z").unwrap().into()).unwrap();
-        info!("Auth token {:?}", token);
+
+        if generate_auth_token(config).is_none() {
+            return;
+        }
 
         let (_addr, server) = warp::serve(api)
            .bind_with_graceful_shutdown(config.addr(), async {
@@ -59,8 +63,47 @@ pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + '
     });
 }
 
+// async fn test(pool: DBPool) {
+//     let mut con = pool.get().await.unwrap();
+//     let result = con.simple_query("select * from Test").await.unwrap();
+//     let rows: Vec<Row> = result.into_first_result().await.unwrap();
+//     info!("{:?}", rows);
+//     let a: Option<i32> = rows[0].try_get("value").unwrap();
+//     info!("a = {:?}", a);
+//     let b: Option<i32> = rows[1].try_get("value").unwrap();
+//     info!("b = {:?}", b);
+// }
+
 fn with_db(db_pool: DBPool) -> impl Filter<Extract = (DB,), Error = Infallible> + Clone {
     warp::any().map(move || DB::new(db_pool.clone()))
+}
+
+// Generate and show token
+fn generate_auth_token(config: &Configuration) -> Option<String> {
+    let exp = DateTime::parse_from_rfc3339("2030-01-01T01:01:01.00Z").unwrap();
+    let token = auth::try_encode_token_exp(config.jwt_secret(), "1", exp.into());
+
+    token.map(|v| {
+        info!(target: "service", "Auth token {:?}", v);
+        v
+    })
+    .map_err(|error| {
+        error!(target: "service", "Error encoding auth token: {}", error);
+        error
+    })
+    .ok()
+
+    // TODO: Not sure which way looks better, this works too
+    // match token {
+    //     Ok(token) => {
+    //         info!(target: "service", "Auth token {:?}", token);
+    //         return Some(token);
+    //     },
+    //     Err(error) => {
+    //         error!(target: "service", "Error encoding auth token: {}", error);
+    //         return None;
+    //     } 
+    // }
 }
 
 // API key verification
@@ -87,6 +130,17 @@ pub fn orders(
         .and(auth_check())
         .and(with_db(db))
         .and_then(handlers::list_orders)
+}
+
+pub fn create_orders_view(
+    db: DBPool,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::path!("orders" / "views")
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(auth_check())
+        .and(with_db(db))
+        .and_then(handlers::list_orders_filtered)
 }
 
 pub fn order(
@@ -188,6 +242,7 @@ pub fn api(
     db: DBPool,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     orders(db.clone())
+        .or(create_orders_view(db.clone()))
         .or(order(db.clone()))
         .or(create_order(db.clone()))
         .or(categories(db.clone()))
