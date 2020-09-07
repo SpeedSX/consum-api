@@ -22,7 +22,7 @@ pub fn from_anyhow(e: anyhow::Error) -> HttpApiProblem {
 }
 
 pub async fn unpack_problem(rejection: Rejection) -> Result<impl Reply, Rejection> {
-    if let Some(_) = rejection.find::<InvalidQuery>() {
+    if rejection.find::<InvalidQuery>().is_some() {
         let problem = &HttpApiProblem::new("Error")
             .set_title("Invalid query string")
             .set_status(StatusCode::BAD_REQUEST);
@@ -43,10 +43,9 @@ fn get_reply(problem: &HttpApiProblem) -> impl Reply {
 
     let reply = warp::reply::json(problem);
     let reply = warp::reply::with_status(reply, code);
-    let reply = warp::reply::with_header(
+    warp::reply::with_header(
         reply,
         http::header::CONTENT_TYPE,
         http_api_problem::PROBLEM_JSON_MEDIA_TYPE,
-    );
-    reply
+    )
 }

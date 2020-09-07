@@ -48,7 +48,7 @@ impl TiberiusConnectionManager {
     pub fn new(config: Config) -> tiberius::Result<TiberiusConnectionManager> {
         
         Ok(TiberiusConnectionManager {
-            config: config,
+            config
         })
     }
 }

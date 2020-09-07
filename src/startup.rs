@@ -251,8 +251,7 @@ pub fn api(
         .or(delete_category(db.clone()))
         .or(supplier_by_id(db.clone()))
         .or(supplier_by_name(db.clone()))
-        .or(create_supplier(db.clone()))
-    // one of these clone()'s is not required but left for consistency
+        .or(create_supplier(db))
 }
 
 fn setup_logger() -> Result<(), fern::InitError> {

@@ -66,7 +66,7 @@ impl DB {
 
     pub fn new(db_pool: DBPool) -> DB {
         DB {
-            db_pool: db_pool
+            db_pool
         }
     }
 
