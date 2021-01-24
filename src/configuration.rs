@@ -2,7 +2,8 @@ use once_cell::sync::Lazy;
 use std::{net::{IpAddr, SocketAddr, Ipv4Addr}, env};
 
 const DEFAULT_PORT: u16 = 3030;
-static DEFAULT_CONNECTION_STRING: &str = "server=tcp:localhost\\SQLEXPRESS,1433;User=sa;Password=sas;Database=Consum";
+static DEFAULT_CONNECTION_STRING: &str = "server=tcp:localhost,1433;TrustServerCertificate=true;User=sa;Password=sas;Database=Consum";
+//"server=tcp:localhost,1433;IntegratedSecurity=true;TrustServerCertificate=true;Database=Consum";
 const DEFAULT_MAX_POOL: u32 = 10;
 const DEFAULT_STDOUT: bool = true;
 const DEFAULT_LOG_NAME: &str = "output.log";

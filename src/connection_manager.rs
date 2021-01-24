@@ -36,7 +36,7 @@ use async_trait::async_trait;
 use tiberius::{Client, Config, error::Error};
 use tokio::net::TcpStream;
 use tokio_util::compat::Compat;
-use tokio_util::compat::Tokio02AsyncWriteCompatExt;
+use tokio_util::compat::TokioAsyncWriteCompatExt;
 
 #[derive(Clone, Debug)]
 pub struct TiberiusConnectionManager {
@@ -59,19 +59,18 @@ impl bb8::ManageConnection for TiberiusConnectionManager {
     type Error = Error;
 
     async fn connect(&self) -> Result<Self::Connection, Self::Error> {
+        use tiberius::SqlBrowser;
 
-        let tcp = TcpStream::connect(&self.config.get_addr()).await?;
+        let tcp = TcpStream::connect_named(&self.config).await?;
         tcp.set_nodelay(true)?;
-
-        //debug!("Connecting...");
 
         Client::connect(self.config.clone(), tcp.compat_write()).await
     }
 
-    async fn is_valid(&self, mut conn: Self::Connection) -> Result<Self::Connection, Self::Error> {
+    async fn is_valid(&self, conn: &mut bb8::PooledConnection<'_, Self>) -> Result<(), Self::Error> {
         //debug!("Checking {:?}", conn);
         conn.simple_query("").await?.into_row().await?;
-        Ok(conn)
+        Ok(())
     }
 
     fn has_broken(&self, _: &mut Self::Connection) -> bool {

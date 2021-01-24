@@ -116,8 +116,22 @@ impl DB {
     }
 
     pub async fn get_order(&self, id: i32) -> Result<Order> {
+        //  Ok(Order{consId: id,
+        //  orderState: 1,
+        //  incomeDate: None,
+        //  supplierId: 8,
+        //  accountNum: Some("20515".to_owned()),
+        //  accountDate: Some(NaiveDateTime::new(NaiveDate::from_ymd(2020, 1, 1), NaiveTime::from_hms(11, 11, 11))),
+        //  bySelf: None,
+        //  hasTrust: false,
+        //  trustSer: None,
+        //  trustNum: None,
+        //  comment: None,
+        //  enterpriseId: 1
+        // })
+
         let mut client = self.db_pool.get().await?;
-        
+
         let stream = client.query("SELECT * from ConsOrders where ConsID = @P1", &[&id]).await?;
         let row = stream.into_row().await?;
 

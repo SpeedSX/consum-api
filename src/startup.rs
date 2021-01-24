@@ -35,7 +35,7 @@ pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + '
     setup_logger().ok();
 
     // Create the runtime
-    let mut rt = Runtime::new().unwrap(); 
+    let rt = Runtime::new().unwrap(); 
     
     // Spawn the root task
     rt.block_on(async {
