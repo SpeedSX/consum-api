@@ -84,7 +84,7 @@ fn generate_auth_token(config: &Configuration) -> Option<String> {
     let token = auth::try_encode_token_exp(config.jwt_secret(), "1", exp.into());
 
     token.map(|v| {
-        info!(target: "service", "Auth token {:?}", v);
+        info!(target: "service", "Auth token {:?}\nSample url: GET http://localhost:3030/orders?api_key={}", v, v);
         v
     })
     .map_err(|error| {
