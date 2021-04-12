@@ -114,8 +114,9 @@ fn auth_check() -> impl Filter<Extract = (User,), Error = warp::Rejection> + Cop
         match claims {
             Ok(claims) => Ok(User { id: claims.user_id().to_owned() }),
             Err(err) => Err(warp::reject::custom(
-                HttpApiProblem::new(format!("Invalid API key: {:?}", err.kind()))
-                    .set_status(warp::http::StatusCode::UNAUTHORIZED)))
+                HttpApiProblem::new(http_api_problem::StatusCode::UNAUTHORIZED)
+                  .title(format!("Invalid API key: {:?}", err.kind()))
+            ))
         }
     })
 }
