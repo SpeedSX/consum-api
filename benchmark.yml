@@ -1,0 +1,14 @@
+---
+
+concurrency: 20
+base: 'http://localhost:3030'
+iterations: 30
+
+plan:
+  - name: Fetch orders
+    request:
+      url: /orders
+
+  - name: Fetch orders 2
+    request:
+      url: /orders
