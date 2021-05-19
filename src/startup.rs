@@ -84,7 +84,7 @@ fn generate_auth_token(config: &Configuration) -> Option<String> {
     let token = auth::try_encode_token_exp(config.jwt_secret(), "1", exp.into());
 
     token.map(|v| {
-        info!(target: "service", "Auth token {:?}", v);
+        info!(target: "service", "Auth token {:?}\nSample url: GET http://localhost:3030/orders?api_key={}", v, v);
         v
     })
     .map_err(|error| {
@@ -114,8 +114,9 @@ fn auth_check() -> impl Filter<Extract = (User,), Error = warp::Rejection> + Cop
         match claims {
             Ok(claims) => Ok(User { id: claims.user_id().to_owned() }),
             Err(err) => Err(warp::reject::custom(
-                HttpApiProblem::new(format!("Invalid API key: {:?}", err.kind()))
-                    .set_status(warp::http::StatusCode::UNAUTHORIZED)))
+                HttpApiProblem::new(http_api_problem::StatusCode::UNAUTHORIZED)
+                  .title(format!("Invalid API key: {:?}", err.kind()))
+            ))
         }
     })
 }

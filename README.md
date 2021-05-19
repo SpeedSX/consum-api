@@ -1,4 +1,6 @@
 # consum-api
+![Rust](https://github.com/SpeedSX/consum-api/workflows/Rust/badge.svg?branch=master)
+[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/SpeedSX/consum-api)
 ## Description
 Web API for Consum application database, implemented in [Rust](https://www.rust-lang.org/). 
 Uses [tiberius](https://github.com/prisma/tiberius) for MS SQL Server access, [warp](https://github.com/seanmonstar/warp) as web framework.

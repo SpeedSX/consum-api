@@ -15,17 +15,15 @@ pub fn from_anyhow(e: anyhow::Error) -> HttpApiProblem {
     error!("Error processing request:\n{:?}", e);
 
     if e.is::<DBRecordNotFound>() {
-        return HttpApiProblem::new("Record not found").set_status(StatusCode::NOT_FOUND);
+        return HttpApiProblem::new(StatusCode::NOT_FOUND).title("Record not found");
     }
-    HttpApiProblem::new(format!("Internal Server Error\n{:#}", e))
-        .set_status(warp::http::StatusCode::INTERNAL_SERVER_ERROR)
+    HttpApiProblem::new(StatusCode::INTERNAL_SERVER_ERROR).title(format!("Internal Server Error\n{:#}", e))
 }
 
 pub async fn unpack_problem(rejection: Rejection) -> Result<impl Reply, Rejection> {
     if rejection.find::<InvalidQuery>().is_some() {
-        let problem = &HttpApiProblem::new("Error")
-            .set_title("Invalid query string")
-            .set_status(StatusCode::BAD_REQUEST);
+        let problem = &HttpApiProblem::new(StatusCode::BAD_REQUEST)
+            .title("Invalid query string");
         let reply = get_reply(problem);
         return Ok(reply);
     }
