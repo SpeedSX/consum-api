@@ -11,7 +11,7 @@ tokio = { version = "1", features = ["macros", "full"] }
 warp = { version = "0.3" }
 once_cell = "1"
 tiberius = { version = "0.6", features=["chrono", "tds73", "rust_decimal", "sql-browser-tokio"] }
-tokio-util = { version = "0.6", features = ["compat"] }
+tokio-util = { version = "0.7", features = ["compat"] }
 # pretty_env_logger = "0.4"
 log = "0.4"
 anyhow = "1"
