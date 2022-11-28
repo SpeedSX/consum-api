@@ -16,7 +16,7 @@ tokio-util = { version = "0.7", features = ["compat"] }
 log = "0.4"
 anyhow = "1"
 thiserror = "1"
-http-api-problem = { version = "0.53", features=["warp"] }
+http-api-problem = { version = "0.56", features=["warp"] }
 serde = { version = "1.0", features = ["derive"] }
 bb8 = "0.8"
 async-trait = "0.1"
