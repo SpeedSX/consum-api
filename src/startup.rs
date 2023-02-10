@@ -125,7 +125,7 @@ fn auth_check() -> impl Filter<Extract = (User,), Error = warp::Rejection> + Cop
 
 pub fn orders(
     db: DBPool,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("orders")
         .and(warp::get())
         .and(auth_check())
@@ -135,7 +135,7 @@ pub fn orders(
 
 pub fn create_orders_view(
     db: DBPool,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("orders" / "views")
         .and(warp::post())
         .and(warp::body::json())
@@ -146,7 +146,7 @@ pub fn create_orders_view(
 
 pub fn order(
     db: DBPool,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("orders" / i32)
         .and(warp::get())
         .and(auth_check())
@@ -156,7 +156,7 @@ pub fn order(
 
 pub fn create_order(
     db: DBPool,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("orders")
         .and(warp::post())
         .and(warp::body::json())
@@ -167,7 +167,7 @@ pub fn create_order(
 
 pub fn categories(
     db: DBPool,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("categories")
         .and(warp::get())
         .and(auth_check())
@@ -177,7 +177,7 @@ pub fn categories(
 
 pub fn category(
     db: DBPool,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("categories" / i32)
         .and(warp::get())
         .and(auth_check())
@@ -187,7 +187,7 @@ pub fn category(
 
 pub fn create_category(
     db: DBPool,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("categories")
         .and(warp::post())
         .and(warp::body::json())
@@ -198,7 +198,7 @@ pub fn create_category(
 
 pub fn delete_category(
     db: DBPool,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("categories" / i32)
         .and(warp::delete())
         .and(auth_check())
@@ -208,7 +208,7 @@ pub fn delete_category(
 
 pub fn supplier_by_id(
     db: DBPool,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("suppliers" / i32)
         .and(warp::get())
         .and(auth_check())
@@ -218,7 +218,7 @@ pub fn supplier_by_id(
 
 pub fn supplier_by_name(
     db: DBPool,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("suppliers" / "name" / UrlPartUtf8String)
         .and(warp::get())
         .and(auth_check())
@@ -228,7 +228,7 @@ pub fn supplier_by_name(
 
 pub fn create_supplier(
     db: DBPool,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("suppliers")
         .and(warp::post())
         .and(warp::body::json())
@@ -241,7 +241,7 @@ pub fn create_supplier(
 
 pub fn api(
     db: DBPool,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     orders(db.clone())
         .or(create_orders_view(db.clone()))
         .or(order(db.clone()))
