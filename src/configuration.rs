@@ -76,5 +76,5 @@ static SERVICE_CONFIG: Lazy<Configuration> = Lazy::new(|| {
 });
 
 pub fn get() -> &'static Configuration {
-    &*SERVICE_CONFIG
+    &SERVICE_CONFIG
 }
