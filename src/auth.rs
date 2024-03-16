@@ -17,7 +17,7 @@ impl Claims {
     fn new(user_id: &str) -> Self {
         Self {
             sub: user_id.to_owned(),
-            exp: (Utc::now() + Duration::weeks(3)).timestamp() as u64,
+            exp: (Utc::now() + Duration::try_weeks(3).unwrap()).timestamp() as u64,
         }
     }
 
