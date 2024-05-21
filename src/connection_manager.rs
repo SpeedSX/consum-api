@@ -39,22 +39,22 @@ use tokio_util::compat::Compat;
 use tokio_util::compat::TokioAsyncWriteCompatExt;
 
 #[derive(Clone, Debug)]
-pub struct TiberiusConnectionManager {
+pub struct TiberiusConnection {
     config: Config,
 }
 
-impl TiberiusConnectionManager {
-    /// Create a new `TiberiusConnectionManager`.
-    pub fn new(config: Config) -> tiberius::Result<TiberiusConnectionManager> {
+impl TiberiusConnection {
+    /// Create a new `TiberiusConnection`.
+    pub fn new(config: Config) -> TiberiusConnection {
         
-        Ok(TiberiusConnectionManager {
+        TiberiusConnection {
             config
-        })
+        }
     }
 }
 
 #[async_trait]
-impl bb8::ManageConnection for TiberiusConnectionManager {
+impl bb8::ManageConnection for TiberiusConnection {
     type Connection = Client<Compat<TcpStream>>;
     type Error = Error;
 

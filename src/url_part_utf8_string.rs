@@ -3,7 +3,7 @@ use core::str::FromStr;
 use percent_encoding::{percent_decode_str, AsciiSet, CONTROLS};
 use std::string::ToString;
 
-/// https://url.spec.whatwg.org/#fragment-percent-encode-set
+/// <https://url.spec.whatwg.org/#fragment-percent-encode-set>
 #[allow(dead_code)]
 const FRAGMENT: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
 
@@ -37,7 +37,7 @@ impl UrlPartUtf8String {
     }
 }
 
-/// implementing FromStr because of path! in warp web server router
+/// implementing `FromStr` because of path! in warp web server router
 /// it assumes that the original string is encoded
 impl FromStr for UrlPartUtf8String {
     type Err = Error;

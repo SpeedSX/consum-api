@@ -9,12 +9,12 @@ use http_api_problem::HttpApiProblem;
 use crate::{
     handlers,
     problem,
-    configuration, 
+    configuration,
     DBPool,
-    connection_manager::TiberiusConnectionManager,
-    db::DB, 
+    connection_manager::TiberiusConnection,
+    db::DB,
     url_part_utf8_string::UrlPartUtf8String,
-    model::*, 
+    model::{ApiKey, User},
     auth, 
 };
 use chrono::DateTime;
@@ -40,14 +40,14 @@ pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + '
     // Spawn the root task
     rt.block_on(async {
         let config = configuration::get();
-        let manager = TiberiusConnectionManager::new(Config::from_ado_string(config.connection_string()).unwrap()).unwrap();
+        let manager = TiberiusConnection::new(Config::from_ado_string(config.connection_string()).unwrap());
         let db_pool = bb8::Pool::builder().max_size(config.max_pool()).build_unchecked(manager);
         
         //test(db_pool.clone()).await;
         
         let api = api(db_pool)
             .with(warp::log("api"))
-            .recover(problem::unpack_problem);
+            .recover(problem::unpack);
     
         info!(target: "service", "Listening on {}", config.addr());
 
@@ -264,7 +264,7 @@ fn setup_logger() -> Result<(), fern::InitError> {
                 record.target(),
                 record.level(),
                 message
-            ))
+            ));
         })
         .level(log::LevelFilter::Debug);
 
@@ -273,8 +273,8 @@ fn setup_logger() -> Result<(), fern::InitError> {
     }
 
     if let Some(path) = configuration::get().log_path() {
-        println!("Logging to file {}", path);
-        logger = logger.chain(fern::log_file(path)?)
+        println!("Logging to file {path}");
+        logger = logger.chain(fern::log_file(path)?);
     }
 
     logger.apply()?;

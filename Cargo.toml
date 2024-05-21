@@ -23,10 +23,10 @@ async-trait = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 fern = "0.6"
 percent-encoding = "2.2"
-jsonwebtoken = "8.2"
+jsonwebtoken = "9"
 
 [target.'cfg(windows)'.dependencies]
-windows-service = "0.6"
+windows-service = "0.7"
 
 [features]
 default = []

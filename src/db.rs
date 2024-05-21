@@ -2,7 +2,7 @@ use anyhow::{bail, Result, Context};
 use tiberius::{Row, FromSql};
 
 use crate::{
-    model::*,
+    model::{Category, CreateCategory, CreateOrder, CreateSupplier, Order, OrderView, Supplier, ViewFilter},
     DBPool,
     errors::{MissingRequiredField, DBRecordNotFound}
 };
@@ -35,21 +35,21 @@ impl RowExt for Row {
 
     fn try_get_string(&self, col: &str) -> Result<Option<String>> {
         let value = self.try_get::<&str, &str>(col)?;
-        Ok(value.map(|s| s.to_string()))
+        Ok(value.map(ToString::to_string))
     }
 
     fn try_get_value<'a, T>(&'a self, col: &str) -> Result<T> where T: Default + FromSql<'a> {
-        let value = self.try_get::<'a, T, &str>(col).with_context(|| format!("Failed to retrieve value from field '{}'", col))?;
+        let value = self.try_get::<'a, T, &str>(col).with_context(|| format!("Failed to retrieve value from field '{col}'"))?;
         Ok(value.unwrap_or_default())
     }
 
     fn try_get_optional<'a, T>(&'a self, col: &str) -> Result<Option<T>> where T: FromSql<'a> {
-         let value = self.try_get::<'a, T, &str>(col).with_context(|| format!("Failed to retrieve optional value from field '{}'", col))?;
+         let value = self.try_get::<'a, T, &str>(col).with_context(|| format!("Failed to retrieve optional value from field '{col}'"))?;
          Ok(value)
     }
 
     fn try_get_required<'a, T>(&'a self, col: &str) -> Result<T> where T: FromSql<'a> {
-        let value = self.try_get::<'a, T, &str>(col).with_context(|| format!("Failed to retrieve required value from field '{}'", col))?;
+        let value = self.try_get::<'a, T, &str>(col).with_context(|| format!("Failed to retrieve required value from field '{col}'"))?;
         if let Some(v) = value {
             return Ok(v);
         }

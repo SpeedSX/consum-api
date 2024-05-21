@@ -10,14 +10,14 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Claims {
     sub: String,
-    exp: u64, // seconds since the epoch
+    exp: i64, // seconds since the epoch
 }
 
 impl Claims {
     fn new(user_id: &str) -> Self {
         Self {
             sub: user_id.to_owned(),
-            exp: (Utc::now() + Duration::try_weeks(3).unwrap()).timestamp() as u64,
+            exp: (Utc::now() + Duration::try_weeks(3).unwrap()).timestamp(),
         }
     }
 
@@ -26,7 +26,7 @@ impl Claims {
     }
 
     pub fn with_expiration(mut self, exp: DateTime<Utc>) -> Self {
-        self.exp = exp.timestamp() as u64;
+        self.exp = exp.timestamp();
         self
     }
 }

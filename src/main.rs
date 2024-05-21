@@ -10,9 +10,9 @@ mod errors;
 mod url_part_utf8_string;
 mod auth;
 
-use connection_manager::TiberiusConnectionManager;
+use connection_manager::TiberiusConnection;
 
-type DBPool = bb8::Pool<TiberiusConnectionManager>;
+type DBPool = bb8::Pool<TiberiusConnection>;
 
 #[cfg(feature = "run-windows-service")]
 mod windows_service_main;

@@ -17,10 +17,10 @@ pub fn from_anyhow(e: anyhow::Error) -> HttpApiProblem {
     if e.is::<DBRecordNotFound>() {
         return HttpApiProblem::new(StatusCode::NOT_FOUND).title("Record not found");
     }
-    HttpApiProblem::new(StatusCode::INTERNAL_SERVER_ERROR).title(format!("Internal Server Error\n{:#}", e))
+    HttpApiProblem::new(StatusCode::INTERNAL_SERVER_ERROR).title(format!("Internal Server Error\n{e:#}"))
 }
 
-pub async fn unpack_problem(rejection: Rejection) -> Result<impl Reply, Rejection> {
+pub async fn unpack(rejection: Rejection) -> Result<impl Reply, Rejection> {
     if rejection.find::<InvalidQuery>().is_some() {
         let problem = &HttpApiProblem::new(StatusCode::BAD_REQUEST)
             .title("Invalid query string");

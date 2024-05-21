@@ -10,57 +10,57 @@ const DEFAULT_LOG_NAME: &str = "output.log";
 const DEFAULT_JWT_SECRET: &str = "consum_jwt_secret";
 
 pub struct Configuration {
-    f_connection_string: String,
-    f_max_pool: u32,
-    f_addr: SocketAddr,
-    f_stdout_enabled: bool,
-    f_log_path: Option<String>,
-    f_jwt_secret: String,
+    connection_string: String,
+    max_pool: u32,
+    addr: SocketAddr,
+    stdout_enabled: bool,
+    log_path: Option<String>,
+    jwt_secret: String,
 }
 
 impl Configuration {
     pub fn connection_string(&self) -> &str {
-        &self.f_connection_string
+        &self.connection_string
     }
 
     pub fn max_pool(&self) -> u32 {
-        self.f_max_pool
+        self.max_pool
     }
 
     pub fn addr(&self) -> SocketAddr {
-        self.f_addr
+        self.addr
     }
 
     pub fn stdout_enabled(&self) -> bool {
-        self.f_stdout_enabled
+        self.stdout_enabled
     }
 
     pub fn log_path(&self) -> Option<&String> {
-        self.f_log_path.as_ref()
+        self.log_path.as_ref()
     }
 
     pub fn jwt_secret(&self) -> &str {
-        &self.f_jwt_secret
+        &self.jwt_secret
     }
 }
 
 static SERVICE_CONFIG: Lazy<Configuration> = Lazy::new(|| {
     Configuration {
-        f_connection_string: env::var("CONSUM_CONNECTION_STRING")
+        connection_string: env::var("CONSUM_CONNECTION_STRING")
             .unwrap_or_else(|_| String::from(DEFAULT_CONNECTION_STRING)),
-        f_max_pool: env::var("CONSUM_MAX_POOL")
+        max_pool: env::var("CONSUM_MAX_POOL")
             .map(|s| s.parse::<u32>().unwrap_or(DEFAULT_MAX_POOL))
             .unwrap_or(DEFAULT_MAX_POOL),
-        f_addr: {
+        addr: {
             let default: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), DEFAULT_PORT);
             env::var("CONSUM_ADDR")
-                .map(|s| s.parse::<SocketAddr>().unwrap_or(default))
-                .unwrap_or_else(|_| default)
+                .map_or_else(|_| default,
+                |s| s.parse::<SocketAddr>().unwrap_or(default))
         },
-        f_stdout_enabled: env::var("CONSUM_STDOUT")
+        stdout_enabled: env::var("CONSUM_STDOUT")
             .map(|s| s.parse::<bool>().unwrap_or(DEFAULT_STDOUT))
             .unwrap_or(DEFAULT_STDOUT),
-        f_log_path: env::var("CONSUM_LOG_PATH")
+        log_path: env::var("CONSUM_LOG_PATH")
             .map(|path|
                 if path.to_uppercase() == "DEFAULT" {  
                     env::current_exe()
@@ -70,7 +70,7 @@ static SERVICE_CONFIG: Lazy<Configuration> = Lazy::new(|| {
                     path 
                 })
             .ok(),
-        f_jwt_secret: env::var("CONSUM_JWT_SECRET")
+        jwt_secret: env::var("CONSUM_JWT_SECRET")
             .unwrap_or_else(|_| String::from(DEFAULT_JWT_SECRET)),
     }
 });
