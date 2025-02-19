@@ -32,11 +32,11 @@
 pub use bb8;
 pub use tiberius;
 
-use async_trait::async_trait;
 use tiberius::{Client, Config, error::Error};
 use tokio::net::TcpStream;
 use tokio_util::compat::Compat;
 use tokio_util::compat::TokioAsyncWriteCompatExt;
+use std::future::Future;
 
 #[derive(Clone, Debug)]
 pub struct TiberiusConnection {
@@ -46,31 +46,32 @@ pub struct TiberiusConnection {
 impl TiberiusConnection {
     /// Create a new `TiberiusConnection`.
     pub fn new(config: Config) -> TiberiusConnection {
-        
-        TiberiusConnection {
-            config
-        }
+        TiberiusConnection { config }
     }
 }
 
-#[async_trait]
 impl bb8::ManageConnection for TiberiusConnection {
     type Connection = Client<Compat<TcpStream>>;
     type Error = Error;
 
-    async fn connect(&self) -> Result<Self::Connection, Self::Error> {
-        use tiberius::SqlBrowser;
+    fn connect(&self) -> impl Future<Output = Result<Self::Connection, Self::Error>> + Send {
+        let config = self.config.clone();
+        async move {
+            use tiberius::SqlBrowser;
 
-        let tcp = TcpStream::connect_named(&self.config).await?;
-        tcp.set_nodelay(true)?;
+            let tcp = TcpStream::connect_named(&config).await?;
+            tcp.set_nodelay(true)?;
 
-        Client::connect(self.config.clone(), tcp.compat_write()).await
+            Client::connect(config, tcp.compat_write()).await
+        }
     }
 
-    async fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
-        //debug!("Checking {:?}", conn);
-        conn.simple_query("").await?.into_row().await?;
-        Ok(())
+    fn is_valid(&self, conn: &mut Self::Connection) -> impl Future<Output = Result<(), Self::Error>> + Send {
+        async move {
+            //debug!("Checking {:?}", conn);
+            conn.simple_query("").await?.into_row().await?;
+            Ok(())
+        }
     }
 
     fn has_broken(&self, _: &mut Self::Connection) -> bool {

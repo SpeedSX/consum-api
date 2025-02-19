@@ -9,6 +9,7 @@ mod problem;
 mod errors;
 mod url_part_utf8_string;
 mod auth;
+mod http_compat;
 
 use connection_manager::TiberiusConnection;
 

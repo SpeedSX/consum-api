@@ -1,7 +1,7 @@
+use http::StatusCode;
 use http_api_problem::HttpApiProblem;
 use warp::{
     self,
-    http::{self, StatusCode},
     Rejection, Reply, reject::InvalidQuery,
 };
 use crate::errors::DBRecordNotFound;
@@ -37,13 +37,18 @@ pub async fn unpack(rejection: Rejection) -> Result<impl Reply, Rejection> {
 }
 
 fn get_reply(problem: &HttpApiProblem) -> impl Reply {
+    use crate::http_compat::{status_to_warp, header_to_warp};
+
     let code = problem.status.unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
 
     let reply = warp::reply::json(problem);
-    let reply = warp::reply::with_status(reply, code);
+    let warp_status = status_to_warp(code);
+    let reply = warp::reply::with_status(reply, warp_status);
+
+    let content_type = header_to_warp(http::header::CONTENT_TYPE);
     warp::reply::with_header(
         reply,
-        http::header::CONTENT_TYPE,
+        content_type,
         http_api_problem::PROBLEM_JSON_MEDIA_TYPE,
     )
 }
