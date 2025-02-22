@@ -4,7 +4,7 @@ use tokio::{
     runtime::Runtime, 
     sync::oneshot::{self, Receiver}
 };
-use tiberius::{Config};
+use tiberius::Config;
 use http_api_problem::HttpApiProblem;
 use crate::{
     handlers,
@@ -29,7 +29,7 @@ pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + '
     if env::var_os("RUST_LOG").is_none() {
         // Set `RUST_LOG=todos=debug` to see debug logs,
         // this only shows access logs.
-        env::set_var("RUST_LOG", "api=info,service=info");
+        unsafe { env::set_var("RUST_LOG", "api=info,service=info") };
     }
     //pretty_env_logger::init();
     setup_logger().ok();

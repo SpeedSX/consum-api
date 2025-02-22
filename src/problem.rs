@@ -25,7 +25,7 @@ pub async fn unpack(rejection: Rejection) -> Result<impl Reply, Rejection> {
         let problem = &HttpApiProblem::new(StatusCode::BAD_REQUEST)
             .title("Invalid query string");
         let reply = get_reply(problem);
-        return Ok(reply);
+        return Ok(reply.into_response());
     }
 
     if let Some(problem) = rejection.find::<HttpApiProblem>() {
