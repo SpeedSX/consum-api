@@ -30,7 +30,7 @@ pub async fn unpack(rejection: Rejection) -> Result<impl Reply, Rejection> {
 
     if let Some(problem) = rejection.find::<HttpApiProblem>() {
         let reply = get_reply(problem);
-        return Ok(reply);
+        return Ok(reply.into_response());
     }
 
     Err(rejection)
