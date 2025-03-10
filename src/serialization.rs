@@ -6,7 +6,7 @@ where
     S: Serializer,
 {
     match d {
-        Some(v) => (*v).serialize(s),
+        Some(v) => v.serialize(s),
         None => s.serialize_none()
     }
 }

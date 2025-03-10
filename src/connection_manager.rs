@@ -36,7 +36,6 @@ use tiberius::{Client, Config, error::Error};
 use tokio::net::TcpStream;
 use tokio_util::compat::Compat;
 use tokio_util::compat::TokioAsyncWriteCompatExt;
-use std::future::Future;
 
 #[derive(Clone, Debug)]
 pub struct TiberiusConnection {
@@ -54,24 +53,20 @@ impl bb8::ManageConnection for TiberiusConnection {
     type Connection = Client<Compat<TcpStream>>;
     type Error = Error;
 
-    fn connect(&self) -> impl Future<Output = Result<Self::Connection, Self::Error>> + Send {
+    async fn connect(&self) -> Result<Self::Connection, Self::Error> {
         let config = self.config.clone();
-        async move {
-            use tiberius::SqlBrowser;
+        use tiberius::SqlBrowser;
 
-            let tcp = TcpStream::connect_named(&config).await?;
-            tcp.set_nodelay(true)?;
+        let tcp = TcpStream::connect_named(&config).await?;
+        tcp.set_nodelay(true)?;
 
-            Client::connect(config, tcp.compat_write()).await
-        }
+        Client::connect(config, tcp.compat_write()).await
     }
 
-    fn is_valid(&self, conn: &mut Self::Connection) -> impl Future<Output = Result<(), Self::Error>> + Send {
-        async move {
-            //debug!("Checking {:?}", conn);
-            conn.simple_query("").await?.into_row().await?;
-            Ok(())
-        }
+    async fn is_valid(&self, conn: &mut Self::Connection) -> Result<(), Self::Error> {
+        //debug!("Checking {:?}", conn);
+        conn.simple_query("").await?.into_row().await?;
+        Ok(())
     }
 
     fn has_broken(&self, _: &mut Self::Connection) -> bool {
