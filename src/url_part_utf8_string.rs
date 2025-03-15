@@ -1,5 +1,6 @@
 use anyhow::Error;
 use core::str::FromStr;
+use std::fmt::Display;
 use percent_encoding::{percent_decode_str, AsciiSet, CONTROLS};
 use std::string::ToString;
 
@@ -52,11 +53,9 @@ impl FromStr for UrlPartUtf8String {
     }
 }
 
-impl ToString for UrlPartUtf8String {
-    #[inline]
-    /// returns decoded string (normal string)
-    fn to_string(&self) -> String {
+impl Display for UrlPartUtf8String {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // return
-        self.s.clone()
+        write!(f, "{}", self.s.clone())
     }
 }
