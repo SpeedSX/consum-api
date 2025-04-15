@@ -326,7 +326,7 @@ impl DB {
     // order by RequestDate
 
     fn try_map_order(row: &Row) -> Result<Order> {
-        trace!("Try mapping row to order: {:?}", row);
+        trace!("Try mapping row to order: {row:?}");
         Ok(Order { 
             consId: row.try_get_required("ConsID")?,
             orderState: row.try_get_value("OrderState")?,
@@ -344,7 +344,7 @@ impl DB {
     }
 
     fn try_map_order_view(row: &Row) -> Result<OrderView> {
-        trace!("Try mapping row to order view: {:?}", row);
+        trace!("Try mapping row to order view: {row:?}");
         Ok(OrderView { 
             consId: row.try_get_required("ConsID")?,
             incomeDate: row.try_get_optional("IncomeDate")?,
@@ -363,7 +363,7 @@ impl DB {
     }
 
     fn try_map_category(row: &Row) -> Result<Category> {
-        trace!("Try mapping row to category: {:?}", row);
+        trace!("Try mapping row to category: {row:?}");
         Ok(Category { 
             catId: row.try_get_required("CatID")?,
             parentId: row.try_get_optional("ParentID")?,
@@ -374,7 +374,7 @@ impl DB {
     }
 
     fn try_map_supplier(row: &Row) -> Result<Supplier> {
-        trace!("Try mapping row to supplier: {:?}", row);
+        trace!("Try mapping row to supplier: {row:?}");
         Ok(Supplier { 
             supplierId: row.try_get_required("SellerID")?,
             supplierName: row.try_get_string("SellerName")?,

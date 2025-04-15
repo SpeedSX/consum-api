@@ -12,7 +12,7 @@ pub fn from_anyhow(e: anyhow::Error) -> HttpApiProblem {
         Err(e) => e,
     };
 
-    error!("Error processing request:\n{:?}", e);
+    error!("Error processing request:\n{e:?}");
 
     if e.is::<DBRecordNotFound>() {
         return HttpApiProblem::new(StatusCode::NOT_FOUND).title("Record not found");
@@ -45,7 +45,7 @@ fn get_reply(problem: &HttpApiProblem) -> impl Reply {
     let warp_status = status_to_warp(code);
     let reply = warp::reply::with_status(reply, warp_status);
 
-    let content_type = header_to_warp(http::header::CONTENT_TYPE);
+    let content_type = header_to_warp(&http::header::CONTENT_TYPE);
     warp::reply::with_header(
         reply,
         content_type,

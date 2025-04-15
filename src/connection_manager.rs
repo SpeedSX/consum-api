@@ -54,9 +54,9 @@ impl bb8::ManageConnection for TiberiusConnection {
     type Error = Error;
 
     async fn connect(&self) -> Result<Self::Connection, Self::Error> {
-        let config = self.config.clone();
         use tiberius::SqlBrowser;
 
+        let config = self.config.clone();
         let tcp = TcpStream::connect_named(&config).await?;
         tcp.set_nodelay(true)?;
 

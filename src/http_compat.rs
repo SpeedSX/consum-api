@@ -7,7 +7,7 @@ pub fn status_to_warp(status: http_new::StatusCode) -> http_old::StatusCode {
         .expect("Status code should be valid")
 }
 
-pub fn header_to_warp(name: http_new::header::HeaderName) -> http_old::header::HeaderName {
+pub fn header_to_warp(name: &http_new::header::HeaderName) -> http_old::header::HeaderName {
     // Convert to static str and then to warp's HeaderName
     let name_str = name.as_str();
     http_old::header::HeaderName::from_bytes(name_str.as_bytes())

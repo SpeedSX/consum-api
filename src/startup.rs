@@ -84,11 +84,11 @@ fn generate_auth_token(config: &Configuration) -> Option<String> {
     let token = auth::try_encode_token_exp(config.jwt_secret(), "1", exp.into());
 
     token.map(|v| {
-        info!(target: "service", "Auth token {:?}\nSample url: GET http://localhost:3030/orders?api_key={}", v, v);
+        info!(target: "service", "Auth token {v:?}\nSample url: GET http://localhost:3030/orders?api_key={v}");
         v
     })
     .map_err(|error| {
-        error!(target: "service", "Error encoding auth token: {}", error);
+        error!(target: "service", "Error encoding auth token: {error}");
         error
     })
     .ok()

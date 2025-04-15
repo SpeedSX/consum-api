@@ -1,6 +1,6 @@
-use once_cell::sync::Lazy;
 use std::{net::{IpAddr, SocketAddr, Ipv4Addr}, env};
 use std::str::FromStr;
+use std::sync::LazyLock;
 
 const DEFAULT_PORT: u16 = 3030;
 static DEFAULT_CONNECTION_STRING: &str = "server=tcp:localhost,1433;TrustServerCertificate=true;User=alexey;Password=dosia;Database=Consum";
@@ -44,7 +44,7 @@ impl Configuration {
         &self.jwt_secret
     }
 }
-static SERVICE_CONFIG: Lazy<Configuration> = Lazy::new(|| Configuration {
+static SERVICE_CONFIG: LazyLock<Configuration> = LazyLock::new(|| Configuration {
     connection_string: get_env_var_or_default("CONSUM_CONNECTION_STRING", DEFAULT_CONNECTION_STRING.to_string()),
     max_pool: get_env_var_or_default("CONSUM_MAX_POOL", DEFAULT_MAX_POOL),
     addr: get_socket_address(),
