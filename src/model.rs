@@ -1,17 +1,14 @@
 use serde::{Serialize, Deserialize};
 use tiberius::{numeric::Decimal, time::chrono::NaiveDateTime};
-use crate::serialization::serialize_optional_datetime;
 
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize)]
 pub struct Order {
     pub consId: i32,
     pub orderState: i32,
-    #[serde(serialize_with = "serialize_optional_datetime")]
     pub incomeDate: Option<NaiveDateTime>,
     pub supplierId: i32,
     pub accountNum: Option<String>,
-    #[serde(serialize_with = "serialize_optional_datetime")]
     pub accountDate: Option<NaiveDateTime>,
     pub bySelf: Option<i32>,
     pub hasTrust: bool,
@@ -25,11 +22,9 @@ pub struct Order {
 #[derive(Debug, Serialize)]
 pub struct OrderView {
     pub consId: i32,
-    #[serde(serialize_with = "serialize_optional_datetime")]
     pub incomeDate: Option<NaiveDateTime>,
     pub supplierId: i32,
     pub accountNum: Option<String>,
-    #[serde(serialize_with = "serialize_optional_datetime")]
     pub accountDate: Option<NaiveDateTime>,
     pub bySelf: Option<i32>,
     pub hasTrust: bool,
