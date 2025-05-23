@@ -8,7 +8,7 @@ use std::string::ToString;
 #[allow(dead_code)]
 const FRAGMENT: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
 
-/// the url must be utf 8. Only the 5 control characters are encoded.
+/// The url must be utf 8. Only the 5 control characters are encoded.
 /// url has parts or fragments or segments delimited mostly by slash /
 /// every part must be encoded/decoded separately, 
 /// to maintain the control character slash /

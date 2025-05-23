@@ -3,10 +3,6 @@ use jsonwebtoken::errors::Result;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 
-// According to the RealWorld API spec, clients are supposed to prefix the token with this string
-// in the Authorization header.
-//const TOKEN_PREFIX: &str = "Token ";
-
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Claims {
     sub: String,
