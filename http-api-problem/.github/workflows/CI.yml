@@ -1,0 +1,52 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        features:
+          [
+            "--no-default-features",
+            "--features axum",
+            "--features hyper",
+            "--features actix-web",
+            "--features warp",
+            "--features salvo",
+            "--features tide",
+            "--features rocket",
+            "--features api-error",
+            "--features 'axum api-error'",
+            "--features 'hyper api-error'",
+            "--features 'actix-web api-error'",
+            "--features 'warp api-error'",
+            "--features 'salvo api-error'",
+            "--features 'tide api-error'",
+            "--features 'rocket api-error'",
+          ]
+        rust: [
+            1.80.0, # MSRV
+            nightly, # it is good practise to test libraries against nightly to catch regressions in the compiler early
+          ]
+      fail-fast: false # don't want to kill the whole CI if nightly fails
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v1
+
+      - name: Install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+
+      - name: Cache target directory
+        uses: actions/cache@v1
+        with:
+          path: target
+          key: target-directory-${{ matrix.rust }}-${{ matrix.features }}-${{ hashFiles('Cargo.toml') }}
+
+      - run: cargo build ${{ matrix.features }}
+      - run: cargo test ${{ matrix.features }}

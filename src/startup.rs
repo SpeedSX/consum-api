@@ -55,11 +55,16 @@ pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + '
             return;
         }
 
-        let (_addr, server) = warp::serve(api)
-           .bind_with_graceful_shutdown(config.addr(), async {
-              shutdown_rx.await.ok();
-           });
-         server.await;
+        // Use warp 0.4's graceful shutdown API
+        warp::serve(api)
+            .bind(config.addr())
+            .await
+            .graceful(async move {
+                shutdown_rx.await.ok();
+                info!(target: "service", "Shutdown signal received");
+            })
+            .run()
+            .await;
     });
 }
 
