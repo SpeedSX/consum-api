@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use tiberius::{numeric::Decimal, time::chrono::NaiveDateTime};
 
 #[allow(non_snake_case)]
@@ -33,7 +33,7 @@ pub struct OrderView {
     pub comment: Option<String>,
     pub enterpriseId: i32,
     pub paidGrn: Decimal,
-    pub accountGrn: Decimal
+    pub accountGrn: Decimal,
 }
 
 #[allow(non_snake_case)]

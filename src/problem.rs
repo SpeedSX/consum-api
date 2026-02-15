@@ -1,10 +1,7 @@
+use crate::errors::DBRecordNotFound;
 use http::StatusCode;
 use http_api_problem::HttpApiProblem;
-use warp::{
-    self,
-    Rejection, Reply, reject::InvalidQuery,
-};
-use crate::errors::DBRecordNotFound;
+use warp::{self, Rejection, Reply, reject::InvalidQuery};
 
 pub fn from_anyhow(e: anyhow::Error) -> HttpApiProblem {
     let e = match e.downcast::<HttpApiProblem>() {
@@ -17,13 +14,13 @@ pub fn from_anyhow(e: anyhow::Error) -> HttpApiProblem {
     if e.is::<DBRecordNotFound>() {
         return HttpApiProblem::new(StatusCode::NOT_FOUND).title("Record not found");
     }
-    HttpApiProblem::new(StatusCode::INTERNAL_SERVER_ERROR).title(format!("Internal Server Error\n{e:#}"))
+    HttpApiProblem::new(StatusCode::INTERNAL_SERVER_ERROR)
+        .title(format!("Internal Server Error\n{e:#}"))
 }
 
 pub async fn unpack(rejection: Rejection) -> Result<impl Reply, Rejection> {
     if rejection.find::<InvalidQuery>().is_some() {
-        let problem = &HttpApiProblem::new(StatusCode::BAD_REQUEST)
-            .title("Invalid query string");
+        let problem = &HttpApiProblem::new(StatusCode::BAD_REQUEST).title("Invalid query string");
         let reply = get_reply(problem);
         return Ok(reply.into_response());
     }
@@ -37,7 +34,7 @@ pub async fn unpack(rejection: Rejection) -> Result<impl Reply, Rejection> {
 }
 
 fn get_reply(problem: &HttpApiProblem) -> impl Reply {
-    use crate::http_compat::{status_to_warp, header_to_warp};
+    use crate::http_compat::{header_to_warp, status_to_warp};
 
     let code = problem.status.unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
 

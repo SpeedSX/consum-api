@@ -1,6 +1,6 @@
-use chrono::{Duration, Utc, DateTime};
+use chrono::{DateTime, Duration, Utc};
 use jsonwebtoken::errors::Result;
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

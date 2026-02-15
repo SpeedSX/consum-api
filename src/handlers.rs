@@ -1,90 +1,97 @@
 use crate::{
     db::DB,
     model::{CreateCategory, CreateOrder, CreateSupplier, User, ViewFilter},
-    url_part_utf8_string::UrlPartUtf8String
+    url_part_utf8_string::UrlPartUtf8String,
 };
 use anyhow::Result;
-use warp::{self, Rejection, Reply, reply, http::StatusCode};
+use warp::{self, Rejection, Reply, http::StatusCode, reply};
 
 pub async fn list_orders(_: User, db: DB) -> Result<impl Reply, Rejection> {
-    map_result(
-        db.get_orders()
-          .await
-          .map(|orders| reply::json(&orders)))
+    map_result(db.get_orders().await.map(|orders| reply::json(&orders)))
 }
 
-pub async fn list_orders_filtered(filter: ViewFilter, _: User, db: DB) -> Result<impl Reply, Rejection> {
+pub async fn list_orders_filtered(
+    filter: ViewFilter,
+    _: User,
+    db: DB,
+) -> Result<impl Reply, Rejection> {
     map_result(
         db.get_orders_filtered(filter)
-          .await
-          .map(|orders| reply::json(&orders)))
+            .await
+            .map(|orders| reply::json(&orders)),
+    )
 }
 
 pub async fn get_order(id: i32, _: User, db: DB) -> Result<impl Reply, Rejection> {
-    map_result(
-        db.get_order(id)
-          .await
-          .map(|order| reply::json(&order)))
+    map_result(db.get_order(id).await.map(|order| reply::json(&order)))
 }
 
 pub async fn create_order(order: CreateOrder, _: User, db: DB) -> Result<impl Reply, Rejection> {
     map_result(
         db.create_order(order)
-          .await
-          .map(|order| reply::with_status(reply::json(&order), StatusCode::CREATED)))
+            .await
+            .map(|order| reply::with_status(reply::json(&order), StatusCode::CREATED)),
+    )
 }
 
 pub async fn list_categories(_: User, db: DB) -> Result<impl Reply, Rejection> {
-    map_result(
-        db.get_categories()
-          .await
-          .map(|cats| reply::json(&cats)))
+    map_result(db.get_categories().await.map(|cats| reply::json(&cats)))
 }
 
 pub async fn get_category(id: i32, _: User, db: DB) -> Result<impl Reply, Rejection> {
-    map_result(
-        db.get_category(id)
-          .await
-          .map(|cat| reply::json(&cat)))
+    map_result(db.get_category(id).await.map(|cat| reply::json(&cat)))
 }
 
-pub async fn create_category(cat: CreateCategory, _: User, db: DB) -> Result<impl Reply, Rejection> {
+pub async fn create_category(
+    cat: CreateCategory,
+    _: User,
+    db: DB,
+) -> Result<impl Reply, Rejection> {
     map_result(
         db.create_category(cat)
-          .await
-          .map(|cat| reply::with_status(reply::json(&cat), StatusCode::CREATED)))
+            .await
+            .map(|cat| reply::with_status(reply::json(&cat), StatusCode::CREATED)),
+    )
 }
 
 pub async fn delete_category(id: i32, _: User, db: DB) -> Result<impl Reply, Rejection> {
-    map_result(
-        db.delete_category(id)
-          .await
-          .map(|()| reply::reply()))
+    map_result(db.delete_category(id).await.map(|()| reply::reply()))
 }
 
 pub async fn get_supplier_by_id(id: i32, _: User, db: DB) -> Result<impl Reply, Rejection> {
     map_result(
         db.get_supplier_by_id(id)
-          .await
-          .map(|supplier| reply::json(&supplier)))
+            .await
+            .map(|supplier| reply::json(&supplier)),
+    )
 }
 
-pub async fn get_supplier_by_name(name: UrlPartUtf8String, _: User, db: DB) -> Result<impl Reply, Rejection> {
+pub async fn get_supplier_by_name(
+    name: UrlPartUtf8String,
+    _: User,
+    db: DB,
+) -> Result<impl Reply, Rejection> {
     map_result(
         db.get_supplier_by_name(name.to_string())
-          .await
-          .map(|supplier| reply::json(&supplier)))
+            .await
+            .map(|supplier| reply::json(&supplier)),
+    )
 }
 
-pub async fn create_supplier(supplier: CreateSupplier, _: User, db: DB) -> Result<impl Reply, Rejection> {
+pub async fn create_supplier(
+    supplier: CreateSupplier,
+    _: User,
+    db: DB,
+) -> Result<impl Reply, Rejection> {
     map_result(
         db.create_supplier(supplier)
-          .await
-          .map(|supplier| reply::with_status(reply::json(&supplier), StatusCode::CREATED)))
+            .await
+            .map(|supplier| reply::with_status(reply::json(&supplier), StatusCode::CREATED)),
+    )
 }
 
 fn map_result(result: anyhow::Result<impl Reply>) -> Result<impl Reply, Rejection> {
     result
-         .map_err(crate::problem::from_anyhow)
-         .map_err(warp::reject::custom)
+        .map_err(crate::problem::from_anyhow)
+        .map_err(warp::reject::custom)
 }

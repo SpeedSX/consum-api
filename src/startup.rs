@@ -1,31 +1,32 @@
-use std::{convert::Infallible, env};
-use warp::Filter;
-use tokio::{
-    runtime::Runtime, 
-    sync::oneshot::{self, Receiver}
-};
-use tiberius::Config;
-use http_api_problem::HttpApiProblem;
 use crate::{
-    handlers,
-    problem,
-    configuration,
-    DBPool,
+    DBPool, auth, configuration,
     connection_manager::TiberiusConnection,
     db::DB,
-    url_part_utf8_string::UrlPartUtf8String,
+    handlers,
     model::{ApiKey, User},
-    auth, 
+    problem,
+    url_part_utf8_string::UrlPartUtf8String,
 };
 use chrono::DateTime;
 use configuration::Configuration;
+use http_api_problem::HttpApiProblem;
+use std::{convert::Infallible, env};
+use tiberius::Config;
+use tokio::{
+    runtime::Runtime,
+    sync::oneshot::{self, Receiver},
+};
+use warp::Filter;
 
 pub fn run() {
     let (_tx, rx) = oneshot::channel::<()>();
     run_with_graceful_shutdown(rx);
 }
 
-pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + 'static {
+pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>)
+where
+    T: Send + 'static,
+{
     if env::var_os("RUST_LOG").is_none() {
         // Set `RUST_LOG=todos=debug` to see debug logs,
         // this only shows access logs.
@@ -35,20 +36,21 @@ pub fn run_with_graceful_shutdown<T>(shutdown_rx: Receiver<T>) where T: Send + '
     setup_logger().ok();
 
     // Create the runtime
-    let rt = Runtime::new().unwrap(); 
-    
+    let rt = Runtime::new().unwrap();
+
     // Spawn the root task
     rt.block_on(async {
         let config = configuration::get();
-        let manager = TiberiusConnection::new(Config::from_ado_string(config.connection_string()).unwrap());
-        let db_pool = bb8::Pool::builder().max_size(config.max_pool()).build_unchecked(manager);
-        
+        let manager =
+            TiberiusConnection::new(Config::from_ado_string(config.connection_string()).unwrap());
+        let db_pool = bb8::Pool::builder()
+            .max_size(config.max_pool())
+            .build_unchecked(manager);
+
         //test(db_pool.clone()).await;
-        
-        let api = api(db_pool)
-            .with(warp::log("api"))
-            .recover(problem::unpack);
-    
+
+        let api = api(db_pool).with(warp::log("api")).recover(problem::unpack);
+
         info!(target: "service", "Listening on {}", config.addr());
 
         if generate_auth_token(config).is_none() {
@@ -107,7 +109,7 @@ fn generate_auth_token(config: &Configuration) -> Option<String> {
     //     Err(error) => {
     //         error!(target: "service", "Error encoding auth token: {}", error);
     //         return None;
-    //     } 
+    //     }
     // }
 }
 
@@ -117,17 +119,18 @@ fn auth_check() -> impl Filter<Extract = (User,), Error = warp::Rejection> + Cop
         let jwt_secret = configuration::get().jwt_secret();
         let claims = auth::decode_token(jwt_secret, &key.api_key);
         match claims {
-            Ok(claims) => Ok(User { id: claims.user_id().to_owned() }),
+            Ok(claims) => Ok(User {
+                id: claims.user_id().to_owned(),
+            }),
             Err(err) => Err(warp::reject::custom(
                 HttpApiProblem::new(http_api_problem::StatusCode::UNAUTHORIZED)
-                  .title(format!("Invalid API key: {:?}", err.kind()))
-            ))
+                    .title(format!("Invalid API key: {:?}", err.kind())),
+            )),
         }
     })
 }
 
 // Endpoints
-
 pub fn orders(
     db: DBPool,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {

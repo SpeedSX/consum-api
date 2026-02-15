@@ -1,10 +1,13 @@
-use anyhow::{bail, Result, Context};
-use tiberius::{Row, FromSql};
+use anyhow::{Context, Result, bail};
+use tiberius::{FromSql, Row};
 
 use crate::{
-    model::{Category, CreateCategory, CreateOrder, CreateSupplier, Order, OrderView, Supplier, ViewFilter},
     DBPool,
-    errors::{MissingRequiredField, DBRecordNotFound}
+    errors::{DBRecordNotFound, MissingRequiredField},
+    model::{
+        Category, CreateCategory, CreateOrder, CreateSupplier, Order, OrderView, Supplier,
+        ViewFilter,
+    },
 };
 
 trait RowExt {
@@ -13,13 +16,19 @@ trait RowExt {
     // fn get_optional<'a, T>(&'a self, col: &str) -> Option<T> where T: FromSql<'a>;
 
     fn try_get_string(&self, col: &str) -> Result<Option<String>>;
-    fn try_get_value<'a, T>(&'a self, col: &str) -> Result<T> where T: Default + FromSql<'a>;
-    fn try_get_optional<'a, T>(&'a self, col: &str) -> Result<Option<T>> where T: FromSql<'a>;
-    fn try_get_required<'a, T>(&'a self, col: &str) -> Result<T> where T: FromSql<'a>;
+    fn try_get_value<'a, T>(&'a self, col: &str) -> Result<T>
+    where
+        T: Default + FromSql<'a>;
+    fn try_get_optional<'a, T>(&'a self, col: &str) -> Result<Option<T>>
+    where
+        T: FromSql<'a>;
+    fn try_get_required<'a, T>(&'a self, col: &str) -> Result<T>
+    where
+        T: FromSql<'a>;
 }
 
 impl RowExt for Row {
-    // methods which ignore errors - not used now 
+    // methods which ignore errors - not used now
 
     // fn get_string(&self, col: &str) -> Option<String> {
     //     self.try_get::<&str, &str>(col).ok().flatten().map(|s| s.to_string())
@@ -38,18 +47,33 @@ impl RowExt for Row {
         Ok(value.map(ToString::to_string))
     }
 
-    fn try_get_value<'a, T>(&'a self, col: &str) -> Result<T> where T: Default + FromSql<'a> {
-        let value = self.try_get::<'a, T, &str>(col).with_context(|| format!("Failed to retrieve value from field '{col}'"))?;
+    fn try_get_value<'a, T>(&'a self, col: &str) -> Result<T>
+    where
+        T: Default + FromSql<'a>,
+    {
+        let value = self
+            .try_get::<'a, T, &str>(col)
+            .with_context(|| format!("Failed to retrieve value from field '{col}'"))?;
         Ok(value.unwrap_or_default())
     }
 
-    fn try_get_optional<'a, T>(&'a self, col: &str) -> Result<Option<T>> where T: FromSql<'a> {
-         let value = self.try_get::<'a, T, &str>(col).with_context(|| format!("Failed to retrieve optional value from field '{col}'"))?;
-         Ok(value)
+    fn try_get_optional<'a, T>(&'a self, col: &str) -> Result<Option<T>>
+    where
+        T: FromSql<'a>,
+    {
+        let value = self
+            .try_get::<'a, T, &str>(col)
+            .with_context(|| format!("Failed to retrieve optional value from field '{col}'"))?;
+        Ok(value)
     }
 
-    fn try_get_required<'a, T>(&'a self, col: &str) -> Result<T> where T: FromSql<'a> {
-        let value = self.try_get::<'a, T, &str>(col).with_context(|| format!("Failed to retrieve required value from field '{col}'"))?;
+    fn try_get_required<'a, T>(&'a self, col: &str) -> Result<T>
+    where
+        T: FromSql<'a>,
+    {
+        let value = self
+            .try_get::<'a, T, &str>(col)
+            .with_context(|| format!("Failed to retrieve required value from field '{col}'"))?;
         if let Some(v) = value {
             return Ok(v);
         }
@@ -59,26 +83,22 @@ impl RowExt for Row {
 }
 
 pub struct DB {
-    db_pool: DBPool
+    db_pool: DBPool,
 }
 
 impl DB {
-
     pub fn new(db_pool: DBPool) -> DB {
-        DB {
-            db_pool
-        }
+        DB { db_pool }
     }
 
     pub async fn get_orders(&self) -> Result<Vec<Order>> {
         let mut client = self.db_pool.get().await?;
-        let stream = client.simple_query("SELECT top (100) * from ConsOrders").await?;
+        let stream = client
+            .simple_query("SELECT top (100) * from ConsOrders")
+            .await?;
         let rows: Vec<Row> = stream.into_first_result().await?;
-        
-        let orders: Result<Vec<_>> = rows
-            .iter()
-            .map(Self::try_map_order)
-            .collect();
+
+        let orders: Result<Vec<_>> = rows.iter().map(Self::try_map_order).collect();
 
         if let Ok(list) = orders {
             info!("Orders count = {}", list.len());
@@ -101,11 +121,8 @@ impl DB {
         }
         let stream = client.simple_query(query_sql).await?;
         let rows: Vec<Row> = stream.into_first_result().await?;
-        
-        let orders: Result<Vec<_>> = rows
-            .iter()
-            .map(Self::try_map_order_view)
-            .collect();
+
+        let orders: Result<Vec<_>> = rows.iter().map(Self::try_map_order_view).collect();
 
         if let Ok(list) = orders {
             info!("Orders count = {}", list.len());
@@ -132,7 +149,9 @@ impl DB {
 
         let mut client = self.db_pool.get().await?;
 
-        let stream = client.query("SELECT * from ConsOrders where ConsID = @P1", &[&id]).await?;
+        let stream = client
+            .query("SELECT * from ConsOrders where ConsID = @P1", &[&id])
+            .await?;
         let row = stream.into_row().await?;
 
         if let Some(order_row) = row {
@@ -174,10 +193,12 @@ impl DB {
 
     pub async fn get_category(&self, id: i32) -> Result<Category> {
         let mut client = self.db_pool.get().await?;
-        
-        let stream = client.query("SELECT * from ConsCats where CatID = @P1", &[&id]).await?;
+
+        let stream = client
+            .query("SELECT * from ConsCats where CatID = @P1", &[&id])
+            .await?;
         let row = stream.into_row().await?;
-        
+
         if let Some(cat_row) = row {
             let cat = Self::try_map_category(&cat_row)?;
             return Ok(cat);
@@ -188,14 +209,11 @@ impl DB {
 
     pub async fn get_categories(&self) -> Result<Vec<Category>> {
         let mut client = self.db_pool.get().await?;
-        
+
         let stream = client.simple_query("SELECT * from ConsCats").await?;
         let rows: Vec<Row> = stream.into_first_result().await?;
-        
-        let mapped_cats: Result<Vec<_>> = rows
-            .iter()
-            .map(Self::try_map_category)
-            .collect();
+
+        let mapped_cats: Result<Vec<_>> = rows.iter().map(Self::try_map_category).collect();
 
         if let Ok(cats) = mapped_cats {
             info!("Cats count = {}", cats.len());
@@ -230,13 +248,15 @@ impl DB {
 
     pub async fn delete_category(&self, id: i32) -> Result<()> {
         let mut client = self.db_pool.get().await?;
-        
-        let result = client.execute("DELETE from ConsCats where CatID = @P1", &[&id]).await?;
 
-        if let Some(count) = result.rows_affected().first() {
-            if count > &0 {
-                return Ok(())
-            }
+        let result = client
+            .execute("DELETE from ConsCats where CatID = @P1", &[&id])
+            .await?;
+
+        if let Some(count) = result.rows_affected().first()
+            && count > &0
+        {
+            return Ok(());
         }
 
         bail!(DBRecordNotFound)
@@ -244,8 +264,10 @@ impl DB {
 
     pub async fn get_supplier_by_id(&self, id: i32) -> Result<Supplier> {
         let mut client = self.db_pool.get().await?;
-        
-        let stream = client.query("SELECT * from Seller where SellerID = @P1", &[&id]).await?;
+
+        let stream = client
+            .query("SELECT * from Seller where SellerID = @P1", &[&id])
+            .await?;
         let row = stream.into_row().await?;
 
         if let Some(seller_row) = row {
@@ -259,7 +281,9 @@ impl DB {
     pub async fn get_supplier_by_name(&self, name: String) -> Result<Supplier> {
         let mut client = self.db_pool.get().await?;
 
-        let stream = client.query("SELECT * from Seller where SellerName = @P1", &[&name]).await?;
+        let stream = client
+            .query("SELECT * from Seller where SellerName = @P1", &[&name])
+            .await?;
         let row = stream.into_row().await?;
 
         if let Some(seller_row) = row {
@@ -309,7 +333,7 @@ impl DB {
     //   inner join ConsOrders cr on cp.ConsID = cr.ConsID
     //   left join Seller s on cr.SellerID = s.SellerID
     // order by PayDate
-    
+
     // select ItemID, ConsID, Num, CatCode, AccountGrn, AccountPrice, ManualFix
     // from ConsOrderItem
     // where ConsID = @P1
@@ -327,7 +351,7 @@ impl DB {
 
     fn try_map_order(row: &Row) -> Result<Order> {
         trace!("Try mapping row to order: {row:?}");
-        Ok(Order { 
+        Ok(Order {
             consId: row.try_get_required("ConsID")?,
             orderState: row.try_get_value("OrderState")?,
             incomeDate: row.try_get_optional("IncomeDate")?,
@@ -345,7 +369,7 @@ impl DB {
 
     fn try_map_order_view(row: &Row) -> Result<OrderView> {
         trace!("Try mapping row to order view: {row:?}");
-        Ok(OrderView { 
+        Ok(OrderView {
             consId: row.try_get_required("ConsID")?,
             incomeDate: row.try_get_optional("IncomeDate")?,
             accountNum: row.try_get_string("AccountNum")?,
@@ -364,7 +388,7 @@ impl DB {
 
     fn try_map_category(row: &Row) -> Result<Category> {
         trace!("Try mapping row to category: {row:?}");
-        Ok(Category { 
+        Ok(Category {
             catId: row.try_get_required("CatID")?,
             parentId: row.try_get_optional("ParentID")?,
             catName: row.try_get_string("CatName")?,
@@ -375,7 +399,7 @@ impl DB {
 
     fn try_map_supplier(row: &Row) -> Result<Supplier> {
         trace!("Try mapping row to supplier: {row:?}");
-        Ok(Supplier { 
+        Ok(Supplier {
             supplierId: row.try_get_required("SellerID")?,
             supplierName: row.try_get_string("SellerName")?,
             supplierPhone: row.try_get_string("SellerPhone")?,

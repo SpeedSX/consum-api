@@ -3,8 +3,7 @@ use warp::http as http_old;
 
 pub fn status_to_warp(status: http_new::StatusCode) -> http_old::StatusCode {
     let code = status.as_u16();
-    http_old::StatusCode::from_u16(code)
-        .expect("Status code should be valid")
+    http_old::StatusCode::from_u16(code).expect("Status code should be valid")
 }
 
 pub fn header_to_warp(name: &http_new::header::HeaderName) -> http_old::header::HeaderName {

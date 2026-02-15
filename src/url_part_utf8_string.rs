@@ -1,7 +1,7 @@
 use anyhow::Error;
 use core::str::FromStr;
+use percent_encoding::{AsciiSet, CONTROLS, percent_decode_str};
 use std::fmt::Display;
-use percent_encoding::{percent_decode_str, AsciiSet, CONTROLS};
 use std::string::ToString;
 
 /// <https://url.spec.whatwg.org/#fragment-percent-encode-set>
@@ -10,7 +10,7 @@ const FRAGMENT: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').ad
 
 /// The url must be utf 8. Only the 5 control characters are encoded.
 /// url has parts or fragments or segments delimited mostly by slash /
-/// every part must be encoded/decoded separately, 
+/// every part must be encoded/decoded separately,
 /// to maintain the control character slash /
 #[derive(Clone, Debug)]
 pub struct UrlPartUtf8String {
@@ -22,13 +22,11 @@ impl UrlPartUtf8String {
     /// constructor from decoded (normal) string
     #[allow(dead_code)]
     pub fn new_from_decoded_string(s: &str) -> Self {
-        UrlPartUtf8String { 
-            s: s.to_string()
-        }
+        UrlPartUtf8String { s: s.to_string() }
     }
     /// get encoded string
     #[allow(dead_code)]
-    pub fn get_encoded_string(&self)->String{
+    pub fn get_encoded_string(&self) -> String {
         Self::encode_fragment(&self.s)
     }
     /// encode fragment / part - associated fn
@@ -43,13 +41,11 @@ impl UrlPartUtf8String {
 impl FromStr for UrlPartUtf8String {
     type Err = Error;
     #[inline]
-    /// constructor, decodes the string from encoded str. 
+    /// constructor, decodes the string from encoded str.
     /// It can error.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let s = percent_decode_str(s).decode_utf8()?.to_string();
-        Ok(UrlPartUtf8String { 
-            s 
-        })
+        Ok(UrlPartUtf8String { s })
     }
 }
 

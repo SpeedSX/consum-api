@@ -1,16 +1,13 @@
-use std::{
-    ffi::OsString,
-    time::Duration
-};
+use std::{ffi::OsString, time::Duration};
 
 use windows_service::{
-    define_windows_service,
+    Result, define_windows_service,
     service::{
         ServiceControl, ServiceControlAccept, ServiceExitCode, ServiceState, ServiceStatus,
         ServiceType,
     },
     service_control_handler::{self, ServiceControlHandlerResult},
-    service_dispatcher, Result,
+    service_dispatcher,
 };
 
 use tokio::sync::oneshot;
