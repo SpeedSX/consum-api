@@ -50,32 +50,24 @@ impl Configuration {
 static SERVICE_CONFIG: LazyLock<Configuration> = LazyLock::new(|| Configuration {
     connection_string: get_env_var_or_default(
         "CONSUM_CONNECTION_STRING",
-        DEFAULT_CONNECTION_STRING.to_string(),
+        || DEFAULT_CONNECTION_STRING.to_string(),
     ),
-    max_pool: get_env_var_or_default("CONSUM_MAX_POOL", DEFAULT_MAX_POOL),
-    addr: get_socket_address(),
-    stdout_enabled: get_env_var_or_default("CONSUM_STDOUT", DEFAULT_STDOUT),
+    max_pool: get_env_var_or_default("CONSUM_MAX_POOL", || DEFAULT_MAX_POOL),
+    addr: get_env_var_or_default("CONSUM_ADDR", || SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), DEFAULT_PORT)),
+    stdout_enabled: get_env_var_or_default("CONSUM_STDOUT", || DEFAULT_STDOUT),
     log_path: get_log_path(),
-    jwt_secret: get_env_var_or_default("CONSUM_JWT_SECRET", DEFAULT_JWT_SECRET.to_string()),
+    jwt_secret: get_env_var_or_default("CONSUM_JWT_SECRET", || DEFAULT_JWT_SECRET.to_string()),
 });
 
 // Helper function to retrieve an environment variable or use a default value.
-fn get_env_var_or_default<T: FromStr>(key: &str, default: T) -> T
+fn get_env_var_or_default<T: FromStr, F: FnOnce() -> T>(key: &str, default: F) -> T
 where
     T::Err: std::fmt::Debug,
 {
     env::var(key)
         .ok()
         .and_then(|value| value.parse::<T>().ok())
-        .unwrap_or(default)
-}
-
-// Extracted function for determining the SocketAddr
-fn get_socket_address() -> SocketAddr {
-    let default_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), DEFAULT_PORT);
-    env::var("CONSUM_ADDR")
-        .map(|s| s.parse::<SocketAddr>().unwrap_or(default_addr))
-        .unwrap_or(default_addr)
+        .unwrap_or_else(default)
 }
 
 // Extracted function for handling log path logic
